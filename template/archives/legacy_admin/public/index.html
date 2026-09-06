@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Console d'Administration — LUMEN</title>
+  <meta name="description" content="Plateforme de gestion des commandes, clients et catalogue de la boutique LUMEN.">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js for Sales Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- LOGIN SCREEN (Initial State if not authenticated) -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card">
+      <div class="brand-header">
+        <span class="brand-icon">✦</span>
+        <h2>LUMEN</h2>
+        <span class="brand-sub">Console d'Administration & CRM</span>
+      </div>
+      
+      <p class="login-intro">Veuillez saisir votre mot de passe administrateur pour accéder à la console de gestion.</p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="admin-pass">Mot de Passe Administrateur</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="admin-pass" class="form-control" placeholder="••••••••" required>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="login-btn" style="width: 100%; border-radius: 12px; padding: 0.9rem; font-size: 1rem; margin-top: 0.5rem;">
+          🔑 Se Connecter au Dashboard
+        </button>
+      </form>
+      <div style="font-size: 0.78rem; color: var(--cream-muted); text-align: center; margin-top: 1rem;">
+        Mode Démo : Le mot de passe par défaut est <code>admin2026</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD MAIN LAYOUT -->
+  <div id="dashboard-app" class="dashboard-layout" style="display: none;">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span style="font-size: 1.6rem; color: var(--gold-primary);">✦</span>
+        <div>
+          <h1>LUMEN</h1>
+          <span style="font-size: 0.72rem; color: var(--gold-primary); font-weight: 600;">BACK-OFFICE PRO</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="tab-overview">
+          <span class="nav-icon">📊</span> Vue d'Ensemble
+        </button>
+        <button class="nav-item" data-tab="tab-orders">
+          <span class="nav-icon">📦</span> Commandes & Suivi
+        </button>
+        <button class="nav-item" data-tab="tab-customers">
+          <span class="nav-icon">👥</span> Fichier Clients CRM
+        </button>
+        <button class="nav-item" data-tab="tab-products">
+          <span class="nav-icon">🏷️</span> Catalogue & Stocks
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="api-status-pill">
+          <span class="status-dot"></span> API : Connecté (Port 3000)
+        </div>
+        <button type="button" class="logout-btn" id="admin-logout-btn">
+          🚪 Déconnexion
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="main-content">
+      
+      <!-- Top Action Bar -->
+      <header class="top-bar">
+        <div>
+          <h2 id="page-title" style="color: var(--gold-glow); font-size: 1.4rem;">📊 Tableau de Bord Général</h2>
+          <span style="font-size: 0.82rem; color: var(--cream-muted);" id="last-update-time">Actualisé en temps réel</span>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button type="button" class="btn-secondary" id="refresh-data-btn" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+            🔄 Actualiser
+          </button>
+          <button type="button" class="btn-primary" id="export-csv-btn" style="padding: 0.6rem 1rem; font-size: 0.85rem; border-radius: 10px;">
+            📥 Export CSV Comptable
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB 1: OVERVIEW & ANALYTICS -->
+      <section id="tab-overview" class="tab-content active">
+        <!-- KPI Cards Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon-box" style="background: rgba(212, 175, 55, 0.15); color: var(--gold-glow);">💶</div>
+            <div>
+              <span class="kpi-label">Chiffre d'Affaires Brut</span>
+              <h3 class="kpi-number" id="kpi-revenue">0,00 €</h3>
+              <span class="kpi-sub">Ventes payées et validées</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon-box" style="background: rgba(52, 152, 219, 0.15); color: #3498db;">📦</div>
+            <div>
+              <span class="kpi-label">Commandes Totales</span>
+              <h3 class="kpi-number" id="kpi-orders-count">0</h3>
+              <span class="kpi-sub" id="kpi-orders-sub">Toutes périodes</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon-box" style="background: rgba(241, 196, 15, 0.15); color: #f1c40f;">⏳</div>
+            <div>
+              <span class="kpi-label">À Expédier (Colissimo)</span>
+              <h3 class="kpi-number" style="color: #f1c40f;" id="kpi-pending-ship">0</h3>
+              <span class="kpi-sub">Commandes payées prêtes</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon-box" style="background: rgba(46, 204, 113, 0.15); color: #2ecc71;">🚚</div>
+            <div>
+              <span class="kpi-label">Expédiées & Livrées</span>
+              <h3 class="kpi-number" style="color: #2ecc71;" id="kpi-shipped">0</h3>
+              <span class="kpi-sub">Avec n° de suivi actif</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sales Chart & Recent Orders Split Grid -->
+        <div style="display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 1.5rem; margin-top: 1.5rem;">
+          
+          <div class="content-card">
+            <div class="card-title">📈 Répartition des Ventes par Produit</div>
+            <div style="position: relative; height: 280px;">
+              <canvas id="salesChart"></canvas>
+            </div>
+          </div>
+
+          <div class="content-card">
+            <div class="card-title">⚡ Dernières Commandes</div>
+            <div id="recent-orders-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto;">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 2: ORDERS MANAGER -->
+      <section id="tab-orders" class="tab-content" style="display: none;">
+        <div class="content-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem;">
+            
+            <!-- Filters -->
+            <div style="display: flex; gap: 8px;">
+              <button class="filter-chip active" data-order-filter="all">Toutes (<span id="cnt-all">0</span>)</button>
+              <button class="filter-chip" data-order-filter="paid">Payées (<span id="cnt-paid">0</span>)</button>
+              <button class="filter-chip" data-order-filter="shipped">Expédiées (<span id="cnt-shipped">0</span>)</button>
+              <button class="filter-chip" data-order-filter="delivered">Livrées (<span id="cnt-delivered">0</span>)</button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="input-with-icon" style="width: 280px;">
+              <span class="input-icon">🔍</span>
+              <input type="text" id="search-orders-input" class="form-control" placeholder="Rechercher réf, nom, email..." style="padding-left: 38px; font-size: 0.85rem;">
+            </div>
+          </div>
+
+          <!-- Orders Table -->
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Réf Commande</th>
+                  <th>Client & Email</th>
+                  <th>Adresse Livraison</th>
+                  <th>Articles</th>
+                  <th>Montant TTC</th>
+                  <th>Statut</th>
+                  <th>N° Suivi Colissimo</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: CUSTOMER CRM -->
+      <section id="tab-customers" class="tab-content" style="display: none;">
+        <div class="content-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+            <div>
+              <h3 style="color: var(--gold-glow); font-size: 1.1rem;">👥 Répertoire Clientèle LUMEN</h3>
+              <span style="font-size: 0.8rem; color: var(--cream-muted);">Liste des clients enregistrés et adresses de livraison</span>
+            </div>
+            <button type="button" class="btn-secondary" id="export-customers-csv" style="padding: 0.5rem 0.9rem; font-size: 0.82rem;">
+              📥 Exporter Liste Clients (CSV)
+            </button>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nom du Client</th>
+                  <th>Adresse E-mail</th>
+                  <th>Adresse Principale</th>
+                  <th>Commandes</th>
+                  <th>Total Dépensé</th>
+                  <th>Compte Inscrit</th>
+                </tr>
+              </thead>
+              <tbody id="customers-table-body">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: PRODUCTS & INVENTORY -->
+      <section id="tab-products" class="tab-content" style="display: none;">
+        <div class="content-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+            <div>
+              <h3 style="color: var(--gold-glow); font-size: 1.1rem;">🏷️ Catalogue des Vanilles de Madagascar</h3>
+              <span style="font-size: 0.8rem; color: var(--cream-muted);">Gestion des prix, conditionnements et taux de vanilline</span>
+            </div>
+          </div>
+
+          <div class="products-admin-grid" id="products-admin-list">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- PRODUCT & STOCK EDIT MODAL -->
+  <div class="modal-overlay" id="product-edit-modal">
+    <div class="modal-card" style="max-width: 620px; width: 95%; background: linear-gradient(165deg, #1c130d 0%, #110b07 100%); border: 1px solid var(--border-gold); border-radius: 20px; padding: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.9);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-gold); padding-bottom: 1rem;">
+        <h3 style="color: var(--gold-glow); font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">
+          ✏️ Modifier le Produit & Stock
+        </h3>
+        <button type="button" class="close-btn" id="close-product-modal-btn" style="color: var(--cream-muted);">&times;</button>
+      </div>
+
+      <form id="product-edit-form">
+        <input type="hidden" id="edit-prod-id">
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="edit-prod-name" style="display: block; font-size: 0.85rem; color: var(--cream-muted); margin-bottom: 5px;">Nom du Produit</label>
+          <input type="text" id="edit-prod-name" class="form-control" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: #0c0805; border: 1px solid var(--border-gold); color: #fff;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="edit-prod-subtitle" style="display: block; font-size: 0.85rem; color: var(--cream-muted); margin-bottom: 5px;">Sous-titre / Conditionnement</label>
+          <input type="text" id="edit-prod-subtitle" class="form-control" placeholder="ex: Qualité Gourmet Noire non fendue • 10 Gousses" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: #0c0805; border: 1px solid var(--border-gold); color: #fff;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div class="form-group">
+            <label for="edit-prod-stock" style="display: block; font-size: 0.85rem; color: var(--gold-glow); font-weight: 600; margin-bottom: 5px;">📦 Stock Disponible (Unités)</label>
+            <input type="number" id="edit-prod-stock" class="form-control" min="0" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: #0c0805; border: 2px solid var(--gold-primary); color: var(--gold-glow); font-weight: bold; font-size: 1.1rem;">
+          </div>
+          <div class="form-group">
+            <label for="edit-prod-price" style="display: block; font-size: 0.85rem; color: var(--cream-muted); margin-bottom: 5px;">💰 Prix TTC (€)</label>
+            <input type="number" id="edit-prod-price" class="form-control" min="0" step="0.01" required style="width: 100%; padding: 0.75rem; border-radius: 8px; background: #0c0805; border: 1px solid var(--border-gold); color: #fff; font-size: 1.1rem;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div class="form-group">
+            <label for="edit-prod-humidity" style="display: block; font-size: 0.85rem; color: var(--cream-muted); margin-bottom: 5px;">💧 Humidité</label>
+            <input type="text" id="edit-prod-humidity" class="form-control" placeholder="32-35%" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: #0c0805; border: 1px solid var(--border-gold); color: #fff;">
+          </div>
+          <div class="form-group">
+            <label for="edit-prod-vanillin" style="display: block; font-size: 0.85rem; color: var(--cream-muted); margin-bottom: 5px;">✨ Vanilline</label>
+            <input type="text" id="edit-prod-vanillin" class="form-control" placeholder="1.8 - 2.2%" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: #0c0805; border: 1px solid var(--border-gold); color: #fff;">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="edit-prod-desc" style="display: block; font-size: 0.85rem; color: var(--cream-muted); margin-bottom: 5px;">Description Commerciale</label>
+          <textarea id="edit-prod-desc" class="form-control" rows="3" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: #0c0805; border: 1px solid var(--border-gold); color: #fff;"></textarea>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem;">
+          <input type="checkbox" id="edit-prod-popular" style="width: 18px; height: 18px; accent-color: var(--gold-primary);">
+          <label for="edit-prod-popular" style="margin: 0; cursor: pointer; color: var(--cream-light); font-size: 0.88rem;">⭐ Marquer comme "Produit Populaire / Star"</label>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border-gold); padding-top: 1.2rem;">
+          <button type="button" class="btn-secondary" id="cancel-product-edit-btn" style="padding: 0.7rem 1.2rem; font-size: 0.9rem;">Annuler</button>
+          <button type="submit" class="btn-primary" id="save-product-btn" style="padding: 0.7rem 1.4rem; font-size: 0.9rem; border-radius: 10px;">💾 Enregistrer les Modifications</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PRINTABLE INVOICE MODAL -->
+  <div class="modal-overlay" id="invoice-modal">
+    <div class="modal-card invoice-modal-card" style="max-width: 800px; width: 95%; background: #ffffff; color: #1a1a1a; padding: 2rem; border-radius: 16px;">
+      <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 1rem;">
+        <h3 style="color: #120c09; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">📜 Facture Officielle Client</h3>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn-primary" onclick="window.print()" style="padding: 0.5rem 1.1rem; font-size: 0.85rem; border-radius: 8px; background: #120c09; color: var(--gold-glow); border: 1px solid var(--gold-primary);">
+            🖨️ Imprimer / PDF
+          </button>
+          <button type="button" class="close-btn" id="close-invoice-btn" style="color: #333;">&times;</button>
+        </div>
+      </div>
+
+      <div id="invoice-printable-area">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

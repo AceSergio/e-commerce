@@ -1,0 +1,323 @@
+/* ==========================================================================
+   LUMEN — DESIGN SYSTEM MINIMALISTE, UNIFIÉ & HAUT DE GAMME
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Surfaces Minérales & Noir Profond */
+  --bg-dark: #0c0d0e;
+  --bg-root: #0c0d0e;
+  --bg-surface: #131518;
+  --bg-surface-glass: rgba(19, 21, 24, 0.85);
+  --bg-card: rgba(20, 22, 26, 0.8);
+  --bg-card-hover: rgba(28, 31, 37, 0.95);
+  --bg-input: #101215;
+  
+  /* Accents Champagne & Bronze Chauds */
+  --gold-primary: #c49b66;
+  --gold-glow: #e2cbb0;
+  --gold-light: #e6d3be;
+  --gold-hover: #d4ae7c;
+  --gold-dark: #967448;
+  --amber-accent: #c49b66;
+  --gold-gradient: linear-gradient(135deg, #d4ae7c 0%, #a8814e 100%);
+  --gold-radial: radial-gradient(circle, rgba(196, 155, 102, 0.18) 0%, transparent 70%);
+  
+  /* Textes & Nuances Minérales */
+  --cream-bright: #FFFFFF;
+  --cream-light: #F1F5F9;
+  --cream-base: #F1F5F9;
+  --cream-muted: #94A3B8;
+  --cream-dark: #64748B;
+  --text-dark: #0F172A;
+  
+  /* Bordures Fines & Élégantes */
+  --border-gold: rgba(196, 155, 102, 0.22);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.16);
+  --border-focus: rgba(196, 155, 102, 0.65);
+  
+  /* Ombres & Lueurs Délicates */
+  --shadow-gold: 0 10px 30px rgba(196, 155, 102, 0.12);
+  --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.65);
+  --shadow-elevated: 0 25px 60px rgba(0, 0, 0, 0.85);
+
+  /* Statuts */
+  --status-success: #10B981;
+  --status-warning: #F59E0B;
+  --status-danger: #EF4444;
+  --status-info: #3B82F6;
+
+  /* Typographies */
+  --font-serif: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Rayons */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  
+  /* Apple Design Transitions */
+  --transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  --spring-bounce: all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-subtle: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-dark);
+  color: var(--cream-light);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ==========================================================================
+   AMBIENT GLOW & FLOATING ORBS (Comme l'original)
+   ========================================================================== */
+.bg-ambient {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  background: 
+    radial-gradient(circle at 15% 20%, rgba(212, 175, 55, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 70%, rgba(230, 138, 0, 0.06) 0%, transparent 45%);
+  overflow: hidden;
+}
+
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.28;
+  transform: translateZ(0);
+  will-change: transform;
+  animation: floatOrb 18s ease-in-out infinite alternate;
+}
+
+.orb-1 {
+  top: 10%;
+  left: 5%;
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, var(--gold-primary), transparent 70%);
+}
+
+.orb-2 {
+  bottom: 15%;
+  right: 10%;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, var(--amber-accent), transparent 70%);
+  animation-duration: 24s;
+  animation-delay: -5s;
+}
+
+.orb-3 {
+  top: 50%;
+  left: 45%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, var(--gold-glow), transparent 70%);
+  animation-duration: 20s;
+  animation-delay: -10s;
+}
+
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, -40px) scale(1.15); }
+  100% { transform: translate(-40px, 50px) scale(0.9); }
+}
+
+
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+/* Headings */
+h1, h2, h3, h4, .font-serif, .serif {
+  font-family: var(--font-serif);
+  letter-spacing: 0.3px;
+  color: var(--cream-bright);
+  line-height: 1.25;
+}
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--gold-gradient);
+  color: #0d0906;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.8rem 1.7rem;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-gold);
+  transition: var(--transition);
+  text-decoration: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(212, 175, 55, 0.45);
+  background: linear-gradient(135deg, #edd05f 0%, #caa432 100%);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--gold-light);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-gold);
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: var(--gold-primary);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--cream-muted);
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.btn-ghost:hover {
+  color: var(--cream-bright);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Glassmorphism Containers */
+.glass-panel {
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-lg);
+}
+
+/* Stock Badges */
+.stock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 4px 11px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.3px;
+}
+
+.stock-in {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.stock-low {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.stock-out {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+  border-left: 1px solid rgba(212, 175, 55, 0.1);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--gold-primary), var(--amber-accent));
+  border-radius: 20px;
+  border: 2px solid var(--bg-dark);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--gold-glow), var(--gold-primary));
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDrawerIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes pulseGold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(212, 175, 55, 0); }
+}
+
+.animate-fade {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-gold {
+  animation: pulseGold 2.5s infinite;
+}
