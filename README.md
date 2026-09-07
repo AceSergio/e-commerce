@@ -1,5 +1,6 @@
 # ✦ LUMEN — Plateforme E-Commerce Fullstack & Sécurisée
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://lumen-ecommerce.onrender.com)
 [![React 19](https://img.shields.io/badge/React-19.x-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express 5](https://img.shields.io/badge/Express-5.x-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
@@ -9,12 +10,22 @@
 [![Security Audited](https://img.shields.io/badge/Security-OWASP%20Audited-10B981?style=for-the-badge&logo=shield&logoColor=white)](#-sécurité--fiabilité-de-niveau-production)
 [![Tests Passing](https://img.shields.io/badge/Tests-36%2F36%20Passing-success?style=for-the-badge&logo=checkmarx&logoColor=white)](#-qualité--tests-automatisés)
 
+> 🚀 **Démo en Ligne (Live Demo)** : **[https://lumen-ecommerce.onrender.com](https://lumen-ecommerce.onrender.com)**  
 > Plateforme e-commerce moderne, performante et haut de gamme développée avec **React 19**, **Express 5**, **Prisma ORM** et **Stripe**.  
 > Conçue selon les standards d'ingénierie logicielle et de cybersécurité (**OWASP Top 10**, intégrité transactionnelle, conformité **RGPD** et tunnel d'achat certifié).
 
 ---
 
-## 📸 Aperçu & Démonstration
+## 🌐 Démonstration en Direct & Accès Rapide
+
+* 🔗 **Boutique en ligne** : [https://lumen-ecommerce.onrender.com](https://lumen-ecommerce.onrender.com)
+* 🛡️ **Console Administration** : Accessible depuis le lien *« 🛡️ Console Administration »* en pied de page (mot de passe démo : `admin2026`).
+* ⚡ **Code Promo test** : Utilisez `BIENVENUE10` (-10%) ou `LUMEN20` (-20% dès 120€) dans le panier.
+* 🩺 **Sonde Health Check API** : [https://lumen-ecommerce.onrender.com/api/health](https://lumen-ecommerce.onrender.com/api/health)
+
+---
+
+## 📸 Aperçu & Fonctionnalités Clés
 
 * **Boutique & Catalogue** : Interface épurée, responsive et fluide (design sombre haut de gamme, typographie éditoriale, tiroir panier réactif).
 * **Tunnel d'Achat en 3 étapes** : Autocomplétion officielle de l'adresse de livraison via l'API Adresse du gouvernement français (API BAN), sélection du transporteur (Colissimo 48h / Chronopost 24h) et passerelle de paiement sécurisée.
