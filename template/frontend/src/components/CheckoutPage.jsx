@@ -25,7 +25,7 @@ export default function CheckoutPage({ onBackToShop, onOrderSuccess, onOpenLegal
   const brand = config.brand || {};
   const promotions = config.promotions || [];
 
-  const [currentStep, setCurrentStep] = useState(1); // 1: Coordonnées, 2: Livraison, 3: Paiement
+  const [currentStep, setCurrentStep] = useState(1); // 1: Info client, 2: Shipping, 3: Payment
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState('');
@@ -36,26 +36,26 @@ export default function CheckoutPage({ onBackToShop, onOrderSuccess, onOpenLegal
   const [isAddressVerified, setIsAddressVerified] = useState(false);
   const [_loadingAddress, setLoadingAddress] = useState(false);
 
-  // Step 2: Shipping
+  // Step 2: Shipping choice
   const [shippingMethod, setShippingMethod] = useState('colissimo'); // 'colissimo' | 'chronopost'
 
-  // Step 3: Payment Method
+  // Step 3: Payment method
   const [paymentMethod, setPaymentMethod] = useState('card'); // 'card' | 'apple_pay' | 'google_pay'
 
-  // Step 3: Card Details (Simulated Fields)
+  // Step 3: Card fields simulés
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvc, setCardCvc] = useState('');
   const [acceptCgv, setAcceptCgv] = useState(false);
 
-  // Promo Code
+  // Coupon / Promo code state
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(null); // { code: 'VANILLE10', rate: 0.10 }
 
-  // Processing State
+  // Processing & loading state
   const [loadingPayment, setLoadingPayment] = useState(false);
 
-  // Totals calculations
+  // Compute des subtotals, discounts et shipping fees
   const subtotal = getCartTotal();
   const shippingCfg = config.shipping || {};
   const freeThreshold = shippingCfg.freeShippingThreshold || 60;
@@ -69,7 +69,7 @@ export default function CheckoutPage({ onBackToShop, onOrderSuccess, onOpenLegal
   const shippingCost = isExpress ? expressCost : (isColissimoFree ? 0 : standardCost);
   const finalTotal = subtotalAfterDiscount + shippingCost;
 
-  // Auto-fill from user context
+  // Auto-fill depuis le session user context
   useEffect(() => {
     if (user) {
       if (user.name) setName(user.name);
@@ -86,7 +86,7 @@ export default function CheckoutPage({ onBackToShop, onOrderSuccess, onOpenLegal
     }
   }, [user]);
 
-  // Debounced BAN Address Auto-complete
+  // Debounced autocomplete BAN API (Adresses gouv.fr)
   useEffect(() => {
     if (!address || address.length < 4 || isAddressVerified) {
       setAddressSuggestions([]);
@@ -145,7 +145,7 @@ export default function CheckoutPage({ onBackToShop, onOrderSuccess, onOpenLegal
     }
   };
 
-  // Step 1 validation
+  // Validation step 1 (customer info)
   const handleProceedToStep2 = (e) => {
     e.preventDefault();
     if (!name || !email || !address) {
@@ -156,14 +156,14 @@ export default function CheckoutPage({ onBackToShop, onOrderSuccess, onOpenLegal
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Step 2 validation
+  // Validation step 2 (shipping method)
   const handleProceedToStep3 = (e) => {
     e.preventDefault();
     setCurrentStep(3);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Step 3: Complete Payment
+  // Step 3 : Handler de submit du payment
   const processFinalOrder = async (_methodType) => {
     if (!acceptCgv) {
       showToast('Veuillez accepter les Conditions Générales de Vente pour finaliser.', 'warning', 'CGV Requises');
@@ -180,7 +180,7 @@ export default function CheckoutPage({ onBackToShop, onOrderSuccess, onOpenLegal
     try {
       const fullAddress = `${address.trim()}${postcode ? ` - ${postcode.trim()}` : ''}${city ? ` ${city.trim()}` : ''}`;
       
-      // 1. Create Payment Intent & Order in Database
+      // 1. Call API create-payment-intent & record l'order en DB
       const createRes = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -210,7 +210,7 @@ export default function CheckoutPage({ onBackToShop, onOrderSuccess, onOpenLegal
 
       const { orderId, isDemoMode } = createData;
 
-      // 2. In Demo / Simulated Mode, confirm immediately
+      // 2. En demo mode / simulation, auto-confirm instantanément
       if (isDemoMode) {
         const confirmRes = await fetch('/api/confirm-demo-payment', {
           method: 'POST',
@@ -230,7 +230,7 @@ export default function CheckoutPage({ onBackToShop, onOrderSuccess, onOpenLegal
         showToast(`Commande ${orderId} validée avec succès !`, 'success', 'Paiement Réussi');
         onOrderSuccess(confirmData.order);
       } else {
-        // Stripe Live checkout flow (hosted 3D-Secure / Apple Pay session)
+        // Stripe live checkout flow (hosted 3D-Secure / Apple Pay session)
         if (createData.checkoutUrl) {
           clearCart();
           showToast('Redirection vers la passerelle sécurisée Stripe...', 'info');

@@ -57,7 +57,7 @@ export default function App() {
   useEffect(() => {
     fetchProducts();
 
-    // Handle return from Stripe Checkout (e.g. ?success=true&order_id=... or ?canceled=true)
+    // Handle le callback return de Stripe Checkout (ex: ?success=true&order_id=... ou ?canceled=true)
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get('success') === 'true') {
@@ -73,11 +73,11 @@ export default function App() {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     } catch {
-      // ignore
+      // Fallback safe si parsing URL query params fail
     }
   }, []);
 
-  // Compute categories dynamically from product list
+  // Compute les categories dynamiquement depuis la product list
   const dynamicCategories = useMemo(() => {
     const cats = [{ id: 'all', label: 'Toutes les Pièces' }];
     const map = new Map();
@@ -98,7 +98,7 @@ export default function App() {
       cats.push({ id, label });
     });
 
-    // If popular products exist, add popular filter
+    // Si des popular products existent, on injecte le filter 'popular'
     if (products.some((p) => p.popular || p.isPopular)) {
       cats.splice(1, 0, { id: 'popular', label: '⭐ Sélections & Coups de Cœur' });
     }

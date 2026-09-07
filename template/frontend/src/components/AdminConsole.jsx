@@ -30,38 +30,38 @@ import InvoiceModal from './InvoiceModal';
 export default function AdminConsole({ isOpen, onClose }) {
   const { showToast } = useToast();
 
-  // Authentication State
+  // State d'authentication admin
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem('admin_auth_token') || '');
   const [password, setPassword] = useState('');
   const [loadingLogin, setLoadingLogin] = useState(false);
 
-  // Active Tab: 'dashboard' | 'orders' | 'customers' | 'products' | 'system'
+  // Active tab sélectionné : 'dashboard' | 'orders' | 'customers' | 'products' | 'system'
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // Core Data
+  // Core data fetched (orders, products, health)
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [_healthStatus, setHealthStatus] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  // Search & Filter States
+  // States pour la search bar & les filters
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [customerSearch, setCustomerSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [productStockFilter, setProductStockFilter] = useState('all');
 
-  // Modals & Drawers
+  // Modals & drawers UI state
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState(null);
   const [editingOrderId, setEditingOrderId] = useState(null);
   const [tempTrackingNumber, setTempTrackingNumber] = useState('');
   const [editingProductModal, setEditingProductModal] = useState(null);
 
-  // Inline Product Drafts map: productId -> { price, stockQuantity, popular, isSaving }
+  // Inline product drafts mapping : productId -> { price, stockQuantity, popular, isSaving }
   const [productDrafts, setProductDrafts] = useState({});
 
-  // System Logs State
+  // State des system logs & terminal
   const [serverLogs, setServerLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logLevelFilter, setLogLevelFilter] = useState('all');
@@ -70,7 +70,7 @@ export default function AdminConsole({ isOpen, onClose }) {
   const [logStats, setLogStats] = useState({ total: 0, info: 0, warn: 0, error: 0 });
   const [autoRefreshLogs, setAutoRefreshLogs] = useState(true);
 
-  // Fetch Server Logs from API
+  // Fetch les server logs depuis l'admin API
   const fetchServerLogs = async () => {
     if (!adminToken) return;
     try {
@@ -134,12 +134,12 @@ export default function AdminConsole({ isOpen, onClose }) {
     }
   };
 
-  // 1. Fetch All Admin Data
+  // 1. Fetch de toutes les admin data
   const fetchAdminData = async () => {
     if (!adminToken) return;
     setLoadingData(true);
     try {
-      // Fetch Orders
+      // Fetch les orders
       const ordersRes = await fetch('/api/orders', {
         headers: { 'x-admin-token': adminToken }
       });
@@ -152,7 +152,7 @@ export default function AdminConsole({ isOpen, onClose }) {
         showToast('Session administrateur expirée.', 'warning');
       }
 
-      // Fetch Products
+      // Fetch les products
       const prodRes = await fetch('/api/products');
       const prodData = await prodRes.json();
       if (prodData.success && Array.isArray(prodData.products)) {
@@ -168,7 +168,7 @@ export default function AdminConsole({ isOpen, onClose }) {
         setProductDrafts(drafts);
       }
 
-      // Fetch Health
+      // Fetch le health status
       const healthRes = await fetch('/api/health');
       const healthData = await healthRes.json();
       setHealthStatus(healthData);
@@ -201,7 +201,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     }
   }, [isOpen, adminToken, activeTab, autoRefreshLogs, logLevelFilter, logCategoryFilter, logSearch]);
 
-  // 2. Login & Logout
+  // 2. Handlers login & logout
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!password) return;
@@ -217,12 +217,12 @@ export default function AdminConsole({ isOpen, onClose }) {
         setAdminToken(data.token);
         localStorage.setItem('admin_auth_token', data.token);
         setPassword('');
-        showToast('Connexion à la Console Administration réussie !', 'success', 'Espace Direction');
+        showToast('Connexion réussie à la console admin', 'success');
       } else {
-        showToast(data.error || 'Mot de passe administrateur incorrect', 'error', 'Accès Refusé');
+        showToast(data.error || 'Mot de passe incorrect', 'error');
       }
     } catch (err) {
-      console.error('Erreur login admin:', err);
+      console.error('Erreur admin login:', err);
       showToast('Erreur de connexion au serveur', 'error');
     } finally {
       setLoadingLogin(false);
@@ -235,7 +235,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     showToast('Déconnexion de la console administration.', 'info');
   };
 
-  // 3. Update Order Status / Tracking
+  // 3. Update order status & carrier tracking
   const handleUpdateOrderStatus = async (orderId, newStatus, newTracking) => {
     try {
       const payload = { status: newStatus };
@@ -263,7 +263,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     }
   };
 
-  // 4. Update Product Drafts & Inline Save
+  // 4. Update des drafts de product & inline save
   const handleDraftChange = (productId, field, value) => {
     setProductDrafts((prev) => ({
       ...prev,
@@ -312,7 +312,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     }
   };
 
-  // 5. Full Product Modal Save
+  // 5. Full product modal edit save
   const handleSaveFullProductModal = async (e) => {
     e.preventDefault();
     if (!editingProductModal) return;
@@ -352,7 +352,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     }
   };
 
-  // 6. CSV Exports
+  // 6. Handlers d'export CSV
   const handleExportOrdersCSV = () => {
     if (orders.length === 0) {
       showToast('Aucune commande à exporter', 'info');
@@ -411,7 +411,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     showToast('Fichier client CRM exporté avec succès !', 'success');
   };
 
-  // 7. Aggregated Metrics & Customer CRM
+  // 7. Metrics agrégées & Customer CRM
   const totalRevenue = useMemo(() => {
     return orders
       .filter((o) => o.status === 'paid' || o.status === 'shipped' || o.status === 'delivered')
@@ -430,7 +430,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     });
   }, [products, productDrafts]);
 
-  // Aggregated Customers List
+  // Liste agrégée des customers CRM
   const customersList = useMemo(() => {
     const map = new Map();
     orders.forEach((o) => {
@@ -462,7 +462,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     return Array.from(map.values());
   }, [orders]);
 
-  // Filtered Orders
+  // Orders filtrées selon les search inputs
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       if (orderStatusFilter !== 'all' && o.status !== orderStatusFilter) return false;
@@ -478,7 +478,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     });
   }, [orders, orderStatusFilter, orderSearch]);
 
-  // Filtered Customers
+  // Customers filtrés selon les search inputs
   const filteredCustomers = useMemo(() => {
     return customersList.filter((c) => {
       if (customerSearch) {
@@ -489,7 +489,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     });
   }, [customersList, customerSearch]);
 
-  // Filtered Products
+  // Products filtrés selon les search inputs
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const draft = productDrafts[p.id] || {};
@@ -507,7 +507,7 @@ export default function AdminConsole({ isOpen, onClose }) {
     });
   }, [products, productDrafts, productStockFilter, productSearch]);
 
-  // Sales Volume per Product Calculation
+  // Compute des sales volume par product
   const salesByProduct = useMemo(() => {
     const counts = {};
     orders.forEach((o) => {

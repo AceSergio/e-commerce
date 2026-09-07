@@ -5,8 +5,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || (isProduction ? null : 'admin_secret_token_2026');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (isProduction ? null : 'admin2026');
 
+// Check si les admin credentials sont bien set en production
 if (isProduction && (!process.env.ADMIN_TOKEN || !process.env.ADMIN_PASSWORD)) {
-  console.warn('⚠️ [SECURITE PRODUCTION] ATTENTION: ADMIN_TOKEN ou ADMIN_PASSWORD non définis dans l\'environnement ! Définissez ces variables dans .env pour autoriser l\'administration.');
+  console.warn('⚠️ [SECURITE PRODUCTION] ATTENTION: ADMIN_TOKEN ou ADMIN_PASSWORD missing dans l\'env ! Set ces variables dans le .env pour lock l\'admin.');
 }
 
 function adminAuth(req, res, next) {
@@ -21,6 +22,7 @@ function adminAuth(req, res, next) {
   const tokenBuffer = Buffer.from(String(token));
   const adminTokenBuffer = Buffer.from(String(ADMIN_TOKEN));
 
+  // Timing-safe comparison des tokens pour bypass les side-channel timing attacks
   if (tokenBuffer.length !== adminTokenBuffer.length || !crypto.timingSafeEqual(tokenBuffer, adminTokenBuffer)) {
     return res.status(401).json({ error: 'Accès non autorisé : Jeton d\'administration invalide ou absent' });
   }
@@ -52,6 +54,7 @@ function isValidAdminToken(token) {
     const tokenBuffer = Buffer.from(String(token));
     const adminTokenBuffer = Buffer.from(String(ADMIN_TOKEN));
     if (tokenBuffer.length !== adminTokenBuffer.length) return false;
+    // Compare en timing-safe les buffers pour empêcher l'énumération par timing leak
     return crypto.timingSafeEqual(tokenBuffer, adminTokenBuffer);
   } catch (e) {
     return false;

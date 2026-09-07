@@ -7,7 +7,7 @@ async function getHealthStatus(req, res) {
 
   try {
     const dbStart = Date.now();
-    // Execute quick lightweight probe query
+    // Probe query lightweight et rapide pour check la DB
     await prisma.$queryRaw`SELECT 1`;
     dbLatencyMs = Date.now() - dbStart;
     dbStatus = 'connected';

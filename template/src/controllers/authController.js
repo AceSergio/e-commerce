@@ -33,11 +33,11 @@ async function sendCode(req, res) {
       }
     }
 
-    // Cryptographically secure 6-digit OTP generation (CWE-330 remediation)
+    // Génération d'un OTP 6-digits cryptographiquement secure (remédiation CWE-330)
     const otpCode = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = Date.now() + 15 * 60 * 1000; // Valid 15 mins
 
-    // Persist code in SQLite via Prisma (with memory caching)
+    // Persist le code dans SQLite via Prisma (avec in-memory caching)
     await saveAuthCodeAsync(cleanEmail, otpCode, expiresAt, isRegister, { name, address });
 
     logger.auth(`Code d'accès (${isRegister ? 'Inscription' : 'Connexion'}) généré pour ${cleanEmail}`, {
@@ -45,7 +45,7 @@ async function sendCode(req, res) {
       isRegister: !!isRegister
     });
 
-    // Send real email via SMTP if configured (or fallback log)
+    // Send un vrai email via SMTP si configured (ou dev fallback log)
     await sendAuthCodeEmail(cleanEmail, otpCode, isRegister);
 
     const isProduction = process.env.NODE_ENV === 'production';
@@ -54,7 +54,7 @@ async function sendCode(req, res) {
       message: `Code d'accès envoyé à ${cleanEmail}`
     };
 
-    // NEVER leak devCode in production
+    // JAMAIS leak le devCode en production
     if (!isProduction) {
       responseObj.devCode = otpCode;
     }
@@ -109,11 +109,11 @@ async function verifyCode(req, res) {
       }
     }
 
-    // Code verified! Remove from database and issue a secure session token
+    // Code vérifié ! Delete de la DB et issue un session token secure
     await deleteAuthCodeAsync(cleanEmail);
     const sessionToken = createSession(cleanEmail);
 
-    // Fetch user orders
+    // Fetch les orders du user
     const userOrders = await getUserOrdersAsync(cleanEmail);
 
     res.json({

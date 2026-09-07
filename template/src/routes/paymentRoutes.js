@@ -4,7 +4,7 @@ const paymentController = require('../controllers/paymentController');
 
 const { paymentLimiter } = require('../middleware/rateLimiter');
 
-// Rate limiting middleware for payment intent route (bypassed in test environment)
+// Middleware de rate limiting pour le payment intent (bypassed en test env)
 const applyPaymentLimiter = process.env.NODE_ENV === 'test' ? (req, res, next) => next() : paymentLimiter;
 
 router.post('/create-payment-intent', applyPaymentLimiter, paymentController.createPaymentIntent);

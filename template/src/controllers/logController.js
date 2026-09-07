@@ -1,9 +1,9 @@
 /**
- * @fileoverview Contrôleur de Gestion des Logs Serveur (LogController)
+ * @fileoverview Controller pour le log management serveur (LogController)
  * 
- * Ce contrôleur expose les points d'entrée sécurisés réservés à l'administration
- * pour superviser l'activité de la plateforme, diagnostiquer les erreurs
- * et exporter les fichiers de journalisation.
+ * Ce controller expose les admin endpoints protégés
+ * pour monitorer le runtime de la plateforme, debugger les crashes
+ * et dump les log files.
  * 
  * @module controllers/logController
  */
@@ -12,19 +12,19 @@ const fs = require('fs');
 const logger = require('../config/logger');
 
 /**
- * Récupère les logs récents depuis le Ring Buffer en mémoire.
+ * Fetch les logs récents depuis le Ring Buffer en memory.
  * 
- * Permet au tableau de bord administrateur d'afficher les logs en temps réel
- * sans solliciter d'opérations lourdes de lecture sur le disque.
+ * Permet au dashboard admin de stream les logs en realtime
+ * sans trigger des heavy reads sur le disk.
  * 
- * Paramètres de requête (Query params) :
- * - `limit` {number} : Nombre maximum d'entrées (défaut: 100, max: 300)
- * - `level` {string} : Filtrer par niveau ('all', 'info', 'warn', 'error', 'debug')
- * - `category` {string} : Filtrer par catégorie ('all', 'AUTH', 'ORDER', 'PAYMENT', 'STOCK', 'HTTP', 'SYSTEM')
- * - `search` {string} : Filtrage textuel dans les messages et métadonnées
+ * Query params supportés :
+ * - `limit` {number} : Max entries à fetch (default: 100, max: 300)
+ * - `level` {string} : Filter par level ('all', 'info', 'warn', 'error', 'debug')
+ * - `category` {string} : Filter par domain tag ('all', 'AUTH', 'ORDER', 'PAYMENT', 'STOCK', 'HTTP', 'SYSTEM')
+ * - `search` {string} : Fulltext search filter dans les messages et metadata
  * 
- * @param {import('express').Request} req - Requête HTTP Express
- * @param {import('express').Response} res - Réponse HTTP Express
+ * @param {import('express').Request} req - Express HTTP Request
+ * @param {import('express').Response} res - Express HTTP Response
  */
 async function getLogs(req, res) {
   try {
@@ -52,13 +52,13 @@ async function getLogs(req, res) {
 }
 
 /**
- * Réinitialise le buffer de logs en mémoire.
+ * Flush et reset le buffer de logs en memory.
  * 
- * Utile pour l'administrateur lors de sessions de débogage ou après
- * avoir résolu un incident pour repartir d'un tableau de bord vierge.
+ * Très pratique pour l'admin pendant des debug sessions ou après
+ * un hotfix pour clean la vue du terminal.
  * 
- * @param {import('express').Request} req - Requête HTTP Express
- * @param {import('express').Response} res - Réponse HTTP Express
+ * @param {import('express').Request} req - Express HTTP Request
+ * @param {import('express').Response} res - Express HTTP Response
  */
 async function clearLogs(req, res) {
   try {
@@ -76,13 +76,13 @@ async function clearLogs(req, res) {
 }
 
 /**
- * Télécharge le fichier brut de journalisation app.log.
+ * Download le raw log file app.log.
  * 
- * Permet à l'administrateur d'archiver ou d'analyser l'historique complet
- * avec des outils externes (ex: grep, datadog, lnav).
+ * Permet à l'admin d'exporter l'historique complet pour parsing
+ * dans des tools externes (ex: grep, datadog, lnav).
  * 
- * @param {import('express').Request} req - Requête HTTP Express
- * @param {import('express').Response} res - Réponse HTTP Express
+ * @param {import('express').Request} req - Express HTTP Request
+ * @param {import('express').Response} res - Express HTTP Response
  */
 async function downloadLogFile(req, res) {
   try {

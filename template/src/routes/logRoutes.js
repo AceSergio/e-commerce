@@ -1,7 +1,7 @@
 /**
- * @fileoverview Définition des Routes de Journalisation Système (LogRoutes)
+ * @fileoverview Routing pour le log system (LogRoutes)
  * 
- * Toutes les routes définies ici sont strictement restreintes à l'administrateur
+ * Tous les endpoints ici sont locked pour l'admin
  * via le middleware timing-safe `adminAuth`.
  * 
  * @module routes/logRoutes
@@ -14,19 +14,19 @@ const { adminAuth } = require('../middleware/adminAuth');
 
 /**
  * Route GET /admin/logs
- * Récupère les logs récents avec statistiques et filtres.
+ * Fetch les logs récents avec query filtering et realtime stats.
  */
 router.get('/admin/logs', adminAuth, logController.getLogs);
 
 /**
  * Route DELETE /admin/logs
- * Réinitialise le buffer de logs en mémoire.
+ * Flush et reset le buffer de logs en memory.
  */
 router.delete('/admin/logs', adminAuth, logController.clearLogs);
 
 /**
  * Route GET /admin/logs/download
- * Télécharge le fichier app.log complet pour archivage.
+ * Download le log file app.log complet pour export et archive.
  */
 router.get('/admin/logs/download', adminAuth, logController.downloadLogFile);
 

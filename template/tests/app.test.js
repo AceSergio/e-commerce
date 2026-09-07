@@ -2,7 +2,7 @@ const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
 
-// Set environment for testing before importing app
+// Setup de l'environment de test avant l'import de l'app
 process.env.NODE_ENV = 'test';
 process.env.ADMIN_TOKEN = 'test-secret-admin-token-2026';
 
@@ -60,13 +60,13 @@ describe('E-Commerce Core API Suite', () => {
   });
 
   it('POST /api/create-payment-intent validates promo and creates order', async () => {
-    // 1. Get first available product
+    // 1. Fetch le first available product
     const prodRes = await fetch(`${baseUrl}/api/products`);
     const prodData = await prodRes.json();
     const product = prodData.products[0];
     assert.ok(product, 'A product should exist');
 
-    // 2. Create intent with promo BIENVENUE10
+    // 2. Init le payment intent avec promo BIENVENUE10
     const res = await fetch(`${baseUrl}/api/create-payment-intent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,7 +93,7 @@ describe('E-Commerce Core API Suite', () => {
 
     const orderId = data.orderId;
 
-    // 3. Confirm payment in demo mode
+    // 3. Confirm le payment en demo mode
     const confirmRes = await fetch(`${baseUrl}/api/confirm-demo-payment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -104,7 +104,7 @@ describe('E-Commerce Core API Suite', () => {
     assert.equal(confirmData.success, true);
     assert.equal(confirmData.order.status, 'paid');
 
-    // 4. Test idempotency: second confirmation call must succeed without duplicate processing
+    // 4. Test d'idempotence : le second call de confirmation doit pass sans double processing
     const reconfirmRes = await fetch(`${baseUrl}/api/confirm-demo-payment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -115,16 +115,16 @@ describe('E-Commerce Core API Suite', () => {
     assert.equal(reconfirmData.success, true);
     assert.equal(reconfirmData.message, 'Paiement déjà confirmé');
 
-    // 5. Test Public Order Lookup Security (IDOR mitigation)
-    // 5a. Access without email -> must return 404
+    // 5. Check la security du lookup public d'order (mitigation IDOR)
+    // 5a. Request sans email -> doit return 404
     const noEmailRes = await fetch(`${baseUrl}/api/orders/public/${orderId}`);
     assert.equal(noEmailRes.status, 404);
 
-    // 5b. Access with wrong email -> must return 404
+    // 5b. Request avec wrong email -> doit return 404
     const wrongEmailRes = await fetch(`${baseUrl}/api/orders/public/${orderId}?email=hacker@evil.com`);
     assert.equal(wrongEmailRes.status, 404);
 
-    // 5c. Access with correct email -> must return 200
+    // 5c. Request avec le bon email client -> doit return 200
     const correctEmailRes = await fetch(`${baseUrl}/api/orders/public/${orderId}?email=jean.dupont.test@example.com`);
     assert.equal(correctEmailRes.status, 200);
     const orderData = await correctEmailRes.json();
@@ -133,17 +133,17 @@ describe('E-Commerce Core API Suite', () => {
   });
 
   it('GET /api/orders enforces admin authorization & pagination', async () => {
-    // 1. Without token -> 401
+    // 1. Call sans admin token -> 401 unauthorized
     const unauthRes = await fetch(`${baseUrl}/api/orders`);
     assert.equal(unauthRes.status, 401);
 
-    // 2. With invalid token -> 401
+    // 2. Call avec un bad token -> 401 unauthorized
     const badTokenRes = await fetch(`${baseUrl}/api/orders`, {
       headers: { 'Authorization': 'Bearer bad-token' }
     });
     assert.equal(badTokenRes.status, 401);
 
-    // 3. With valid token -> 200 & paginated
+    // 3. Call avec valid admin token -> 200 OK & paginated response
     const authRes = await fetch(`${baseUrl}/api/orders?page=1&limit=5`, {
       headers: { 'Authorization': 'Bearer test-secret-admin-token-2026' }
     });
@@ -158,7 +158,7 @@ describe('E-Commerce Core API Suite', () => {
   it('Auth & GDPR: send OTP, verify code, export data & soft delete', async () => {
     const testUserEmail = `user.test.${Date.now()}@example.com`;
 
-    // 1. Send OTP code for registration
+    // 1. Send le code OTP pour le register
     const sendRes = await fetch(`${baseUrl}/api/auth/send-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -173,12 +173,12 @@ describe('E-Commerce Core API Suite', () => {
     const sendData = await sendRes.json();
     assert.equal(sendData.success, true);
 
-    // 2. Retrieve code from DB
+    // 2. Retrieve le code stocké en DB
     const { getAuthCodeAsync } = require('../src/data/usersStore');
     const authRecord = await getAuthCodeAsync(testUserEmail);
     assert.ok(authRecord && authRecord.code);
 
-    // 3. Verify code -> obtain signed session token
+    // 3. Verify le code OTP -> récupère le session token signé
     const verifyRes = await fetch(`${baseUrl}/api/auth/verify-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -195,12 +195,12 @@ describe('E-Commerce Core API Suite', () => {
 
     const userToken = verifyData.token;
 
-    // 4. GDPR Article 20: Export user personal data
-    // 4a. Without token -> 401
+    // 4. RGPD Article 20 : Export des data personnelles de l'user
+    // 4a. Export sans token -> 401 unauthorized
     const unauthExport = await fetch(`${baseUrl}/api/auth/export-data?email=${testUserEmail}`);
     assert.equal(unauthExport.status, 401);
 
-    // 4b. With valid user token -> 200 with complete JSON
+    // 4b. Export avec valid user token -> 200 avec payload JSON complet
     const authExport = await fetch(`${baseUrl}/api/auth/export-data?email=${testUserEmail}`, {
       headers: { 'x-user-token': userToken }
     });
@@ -212,16 +212,16 @@ describe('E-Commerce Core API Suite', () => {
   });
 
   it('Admin Logger: requires auth, returns logs & stats, and supports reset', async () => {
-    // 1. Unauthorized access without token -> 401
+    // 1. Unauthorized request sans token -> 401
     const unauthRes = await fetch(`${baseUrl}/api/admin/logs`);
     assert.equal(unauthRes.status, 401);
 
-    // 2. Generate a test log entry
+    // 2. Push un test log entry dans le pipeline
     const logger = require('../src/config/logger');
     logger.order('Test commande log pour suite de tests', { testId: 123 });
     logger.error({ category: 'PAYMENT', testError: true }, 'Test erreur de paiement');
 
-    // 3. Authorized access with admin token -> 200
+    // 3. Authorized request avec admin token -> 200 OK
     const authRes = await fetch(`${baseUrl}/api/admin/logs?limit=50`, {
       headers: { 'x-admin-token': process.env.ADMIN_TOKEN }
     });
@@ -233,14 +233,14 @@ describe('E-Commerce Core API Suite', () => {
     assert.ok(data.stats);
     assert.ok(typeof data.stats.total === 'number');
 
-    // 4. Test download endpoint -> 200
+    // 4. Test du download endpoint -> 200 OK
     const downloadRes = await fetch(`${baseUrl}/api/admin/logs/download`, {
       headers: { 'x-admin-token': process.env.ADMIN_TOKEN }
     });
     assert.equal(downloadRes.status, 200);
     assert.ok(downloadRes.headers.get('content-disposition'));
 
-    // 5. Test clear logs -> 200
+    // 5. Test du clear logs -> 200 OK
     const clearRes = await fetch(`${baseUrl}/api/admin/logs`, {
       method: 'DELETE',
       headers: { 'x-admin-token': process.env.ADMIN_TOKEN }

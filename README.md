@@ -208,8 +208,3 @@ npx oxlint src
 Développé avec passion par **[AceSergio](https://github.com/AceSergio)**.  
 Projet conçu pour illustrer des compétences avancées en développement fullstack, architecture logicielle et sécurité applicative.
 
----
-
-## 📄 Licence
-
-Distribué sous licence **MIT**. Libre d'utilisation à des fins personnelles et professionnelles.

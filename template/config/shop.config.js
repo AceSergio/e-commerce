@@ -3,7 +3,7 @@
  */
 
 const shopConfig = {
-  // 1. Identité de la Marque & Vitrine
+  // 1. Brand identity & vitrine metadata
   brand: {
     name: "LUMEN",
     tagline: "Objets & Essentiels de Vie Contemporains",
@@ -17,7 +17,7 @@ const shopConfig = {
     ratingReviewsCount: "1 250+ avis vérifiés"
   },
 
-  // 2. Thème & Charte Graphique (injecté automatiquement en CSS)
+  // 2. Theme & UI design tokens (auto-injecté en variables CSS)
   theme: {
     primaryColor: "#c49b66",       // Teinte dorée / champagne douce et raffinée
     primaryGlow: "rgba(196, 155, 102, 0.4)",
@@ -33,7 +33,7 @@ const shopConfig = {
     fontBody: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif"
   },
 
-  // 3. Règles de Livraison & Transporteurs
+  // 3. Shipping rules & carriers config
   shipping: {
     freeShippingThreshold: 60.00,
     standardCost: 4.90,
@@ -44,7 +44,7 @@ const shopConfig = {
     carrierTrackingUrl: "https://www.laposte.fr/outils/suivre-vos-envois?code="
   },
 
-  // 4. Informations Légales & Entreprise
+  // 4. Legal notice & company info (RGPD / CGV)
   legal: {
     companyName: "Lumen Atelier SAS",
     capital: "50 000 €",
@@ -57,7 +57,7 @@ const shopConfig = {
     returnPeriodDays: 30
   },
 
-  // 5. Codes Promotionnels Actifs
+  // 5. Active promo codes & discounts
   promotions: [
     { code: "BIENVENUE10", rate: 0.10, label: "10% de remise de bienvenue" },
     { code: "LUMEN20", rate: 0.20, minAmount: 120, label: "20% dès 120€ d'achat" }

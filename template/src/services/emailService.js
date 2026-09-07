@@ -3,6 +3,7 @@ const config = require('../config/env');
 const shopConfig = require('../../config/shop.config');
 const logger = require('../config/logger');
 
+// Setup du transporter SMTP via nodemailer avec credentials du .env
 function getTransporter() {
   if (config.SMTP_HOST && config.SMTP_USER && config.SMTP_PASS) {
     return nodemailer.createTransport({
@@ -23,6 +24,7 @@ const BRAND_TAGLINE = shopConfig.brand?.tagline || 'Objets & Créations Contempo
 const PRIMARY_COLOR = shopConfig.theme?.primaryColor || '#c49b66';
 const LOGO_EMOJI = shopConfig.brand?.logoEmoji || '✦';
 
+// Generate et send l'email OTP d'authentification client (ou dev fallback log)
 async function sendAuthCodeEmail(email, code, isRegister) {
   if (!email || !code) return false;
 
@@ -94,6 +96,7 @@ async function sendAuthCodeEmail(email, code, isRegister) {
   return false;
 }
 
+// Trigger l'email de confirmation après payment réussi de l'order
 async function sendOrderConfirmationEmail(order) {
   if (!order || !order.customerInfo?.email) return false;
 
@@ -137,6 +140,7 @@ async function sendOrderConfirmationEmail(order) {
   return true;
 }
 
+// Trigger l'email d'expédition avec tracking link La Poste
 async function sendOrderShippedEmail(order) {
   if (!order || !order.customerInfo?.email) return false;
 

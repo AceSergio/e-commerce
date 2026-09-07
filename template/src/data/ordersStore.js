@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 
+// Format les raw order records de Prisma vers l'object JSON de l'API
 function formatOrderRecord(order) {
   if (!order) return null;
   return {
@@ -28,6 +29,7 @@ function formatOrderRecord(order) {
   };
 }
 
+// Fetch les orders avec pagination et skip/take si page & limit sont set
 async function getOrdersAsync(options = {}) {
   try {
     const page = options.page ? Math.max(1, parseInt(options.page, 10)) : null;
@@ -65,6 +67,7 @@ async function getOrdersAsync(options = {}) {
   }
 }
 
+// Lookup d'une order par son Stripe paymentIntentId
 async function getOrderByPaymentIntentIdAsync(paymentIntentId) {
   if (!paymentIntentId) return null;
   try {
@@ -79,6 +82,7 @@ async function getOrderByPaymentIntentIdAsync(paymentIntentId) {
   }
 }
 
+// Lookup d'une order par son unique business orderId
 async function getOrderByOrderIdAsync(orderId) {
   if (!orderId) return null;
   try {
@@ -93,6 +97,7 @@ async function getOrderByOrderIdAsync(orderId) {
   }
 }
 
+// Fetch toutes les orders passées par un customer via son email
 async function getUserOrdersAsync(email) {
   if (!email) return [];
   const cleanEmail = email.toLowerCase().trim();
@@ -109,6 +114,7 @@ async function getUserOrdersAsync(email) {
   }
 }
 
+// Insert une new order avec ses nested line items en DB
 async function saveOrderAsync(orderData) {
   try {
     let userId = null;
@@ -149,6 +155,7 @@ async function saveOrderAsync(orderData) {
   }
 }
 
+// Update le status de l'order par orderId (ex: pending -> paid)
 async function updateOrderStatusByOrderIdAsync(orderId, status, paidAt = new Date()) {
   try {
     const updated = await prisma.order.update({
@@ -166,6 +173,7 @@ async function updateOrderStatusByOrderIdAsync(orderId, status, paidAt = new Dat
   }
 }
 
+// Update le status de l'order par paymentIntentId (utilisé par le webhook handler)
 async function updateOrderStatusByPaymentIntentIdAsync(paymentIntentId, status, paidAt = new Date()) {
   try {
     const order = await prisma.order.findFirst({
@@ -188,6 +196,7 @@ async function updateOrderStatusByPaymentIntentIdAsync(paymentIntentId, status, 
   }
 }
 
+// Update admin : change le status ou set le carrier tracking number avec auto-generated La Poste URL
 async function updateOrderAdminAsync(orderId, { status, trackingNumber }) {
   try {
     const existingOrder = await prisma.order.findFirst({

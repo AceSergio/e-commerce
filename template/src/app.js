@@ -10,10 +10,10 @@ const apiRoutes = require('./routes');
 
 const app = express();
 
-// Trust reverse proxy headers (X-Forwarded-For) for accurate rate limiting
+// Trust reverse proxy headers (X-Forwarded-For) pour rate limiting correct derrière proxy/load balancer
 app.set('trust proxy', 1);
 
-// Structured HTTP Request Logger (Pino)
+// Structured HTTP request logger middleware via Pino
 app.use(
   pinoHttp({
     logger,
@@ -26,7 +26,7 @@ app.use(
   })
 );
 
-// Security headers with Helmet (configured for Stripe, Google Fonts & BAN Address API)
+// Security headers via Helmet (allow Stripe, Google Fonts & French Government BAN Address API)
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -61,17 +61,17 @@ app.use(cors({
   credentials: true
 }));
 
-// Webhook raw body parsing prior to global express.json()
+// Raw body parsing pour le Stripe webhook endpoint prior à express.json()
 app.use('/api/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve product images from frontend assets
+// Serve les assets product images
 app.use('/images', express.static(path.join(__dirname, '../frontend/public/images'), { maxAge: '1d' }));
 app.use('/images', express.static(path.join(__dirname, '../archives/legacy_public/images'), { maxAge: '1d' }));
 
-// Serve static frontend files (React build first, then archives as fallback)
+// Serve les static assets du frontend (React Vite build first avec fallback)
 const reactDistPath = path.join(__dirname, '../frontend/dist');
 const legacyArchivePath = path.join(__dirname, '../archives/legacy_public');
 
@@ -83,15 +83,15 @@ if (fs.existsSync(reactDistPath)) {
 
 const { globalLimiter } = require('./middleware/rateLimiter');
 
-// Apply global rate limiter to API routes (bypassed during automated tests)
+// Global rate limiter sur les /api endpoints (bypass pendant les automated tests)
 if (process.env.NODE_ENV !== 'test') {
   app.use('/api', globalLimiter);
 }
 
-// API routes
+// Mount des API routes
 app.use('/api', apiRoutes);
 
-// SPA fallback for React / frontend navigation
+// SPA fallback catch-all pour le routing React client-side
 app.get('/{*splat}', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.includes('.')) {
     return next();

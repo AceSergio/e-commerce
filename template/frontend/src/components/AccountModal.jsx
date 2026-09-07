@@ -44,10 +44,10 @@ export default function AccountModal() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Selected Order for Invoice modal
+  // Selected order pour l'invoice modal
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState(null);
 
-  // Profile Edit State
+  // State de l'édition du profile
   const [profileName, setProfileName] = useState('');
   const [profileAddress, setProfileAddress] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState([]);
@@ -89,7 +89,7 @@ export default function AccountModal() {
     }
   }, [user]);
 
-  // Autocomplete address search (API Adresse Gouv)
+  // Autocomplete address search (API Adresse gouv.fr)
   const searchAddress = async (query) => {
     if (!query || query.length < 3) {
       setAddressSuggestions([]);

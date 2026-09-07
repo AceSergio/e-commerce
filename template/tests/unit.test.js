@@ -1,13 +1,13 @@
 /**
- * @fileoverview Suite de Tests Unitaires Exhaustifs (29 Tests)
+ * @fileoverview Test suite unitaire exhaustive (29 Unit Tests)
  * 
- * Cette suite valide de manière unitaire et isolée les briques fondamentales :
- * 1. Sécurité & Authentification (Tokens HMAC, timingSafeEqual, validation de sessions)
- * 2. Moteur de Journalisation (Ring Buffer, métriques, filtrages par niveau/catégorie/recherche)
- * 3. Gestion du Catalogue & Décrémentation Atomique de Stock
- * 4. Persistance des Commandes & Génération du Suivi Transporteur
- * 5. Logique Métier (Codes promo, seuils de livraison gratuite, conformité CWE-330)
- * 6. Cycle de vie Utilisateur & Protections RGPD (Droit à l'oubli / Soft Delete)
+ * Cette suite check de manière unitaire et isolée les core components :
+ * 1. Security & Auth (HMAC tokens, timingSafeEqual, session validation)
+ * 2. Logging Engine (Ring buffer, log metrics, filtering par level/category/search)
+ * 3. Catalog & Inventory (Atomic stock decrements)
+ * 4. Orders Store & Carrier tracking URL generation
+ * 5. Business Logic (Promo codes, free shipping thresholds, CWE-330 entropy)
+ * 6. User Lifecycle & GDPR compliance (Right to be forgotten / Soft delete)
  */
 
 process.env.NODE_ENV = 'test';
@@ -50,7 +50,7 @@ after(async () => {
   await prisma.$disconnect();
 });
 
-// Helper pour attendre le cycle d'écriture du stream Writable de Pino
+// Helper pour wait le write cycle du Writable stream de Pino
 const waitTick = () => new Promise(resolve => setImmediate(resolve));
 
 describe('Suite 1: Sécurité, Authentification & Sessions Cryptographiques', () => {
@@ -293,7 +293,7 @@ describe('Suite 3: Catalogue, Produits & Décrémentation de Stock', () => {
     const product = await getProductByIdAsync('prod-vase-sculptural');
     assert.ok(product);
 
-    // Mise à jour avec valeurs négatives -> doivent être ramenées à 0
+    // Mise à jour avec des negative values -> clamp à 0
     const updated = await updateProductAsync('prod-vase-sculptural', {
       price: -50,
       stockQuantity: -10
@@ -303,7 +303,7 @@ describe('Suite 3: Catalogue, Produits & Décrémentation de Stock', () => {
       assert.ok(updated.price >= 0);
       assert.ok(updated.stockQuantity >= 0);
 
-      // Restauration des valeurs initiales
+      // Rollback des initial values
       await updateProductAsync('prod-vase-sculptural', {
         price: product.price,
         stockQuantity: product.stockQuantity
@@ -384,16 +384,16 @@ describe('Suite 5: Règles Métier, Calculs Financiers & Conformité RGPD', () =
       return 0;
     }
 
-    // 100€ d'achat avec BIENVENUE10 -> 10€ de remise
+    // 100€ d'achat avec BIENVENUE10 -> 10€ de discount
     assert.equal(applyPromo('BIENVENUE10', 10000), 1000);
 
-    // 100€ d'achat avec LUMEN20 -> 0€ de remise (seuil 120€ non atteint)
+    // 100€ d'achat avec LUMEN20 -> 0€ de discount (threshold 120€ pas reached)
     assert.equal(applyPromo('LUMEN20', 10000), 0);
 
-    // 150€ d'achat avec LUMEN20 -> 30€ de remise
+    // 150€ d'achat avec LUMEN20 -> 30€ de discount
     assert.equal(applyPromo('LUMEN20', 15000), 3000);
 
-    // Code inexistant
+    // Unknown promo code
     assert.equal(applyPromo('INVALIDE', 15000), 0);
   });
 
@@ -405,23 +405,23 @@ describe('Suite 5: Règles Métier, Calculs Financiers & Conformité RGPD', () =
       return subtotalEuro >= 60.00 ? 0.00 : 4.90;
     }
 
-    // Panier 45€ standard -> 4.90€
+    // Cart 45€ standard -> 4.90€ shipping fee
     assert.equal(calculateShipping('colissimo_home', 45.00), 4.90);
 
-    // Panier 60€ standard -> 0.00€
+    // Cart 60€ standard -> 0.00€ (free shipping)
     assert.equal(calculateShipping('colissimo_home', 60.00), 0.00);
 
-    // Panier 150€ standard -> 0.00€
+    // Cart 150€ standard -> 0.00€ (free shipping)
     assert.equal(calculateShipping('colissimo_home', 150.00), 0.00);
 
-    // Express 150€ -> 9.90€ (frais fixes quel que soit le panier)
+    // Express 150€ -> 9.90€ (flat fee regardless du cart total)
     assert.equal(calculateShipping('chronopost', 150.00), 9.90);
   });
 
   it('27. Génération d\'ID de commande conforme CWE-330 (aléa fort & date préfixée)', () => {
     const orderIdRegex = /^ORD-\d{8}-[A-F0-9]{6}$/;
 
-    // Simule l'algorithme sécurisé utilisé dans paymentController.js
+    // Simule l'algo sécurisé utilisé dans paymentController.js
     const datePrefix = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const uniqueSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
     const orderId = `ORD-${datePrefix}-${uniqueSuffix}`;
@@ -447,7 +447,7 @@ describe('Suite 5: Règles Métier, Calculs Financiers & Conformité RGPD', () =
   });
 
   it('29. RGPD & Droit à l\'Oubli : deleteUserAsync protège l\'intégrité si commande en cours (<30 jours)', async () => {
-    // 1. Cas d'un utilisateur sans commande -> suppression acceptée (Soft Delete)
+    // 1. Use case d'un user sans order -> delete granted (Soft Delete)
     const emailClean = `rgpd.clean.${Date.now()}@example.com`;
     await saveUserAsync({ email: emailClean, name: 'Client Sans Commande' });
 
@@ -457,7 +457,7 @@ describe('Suite 5: Règles Métier, Calculs Financiers & Conformité RGPD', () =
     const userAfterDelete = await findUserByEmailAsync(emailClean);
     assert.equal(userAfterDelete, null, 'Un compte supprimé (soft delete) ne doit plus être accessible');
 
-    // 2. Cas d'un utilisateur avec commande en cours (<30j) -> suppression bloquée
+    // 2. Use case d'un user avec active order (<30j) -> delete blocked
     const emailActive = `rgpd.active.${Date.now()}@example.com`;
     await saveUserAsync({ email: emailActive, name: 'Client Avec Commande' });
     await saveOrderAsync({

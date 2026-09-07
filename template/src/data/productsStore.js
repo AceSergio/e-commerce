@@ -3,7 +3,7 @@ const DEFAULT_PRODUCTS = require('./products');
 const logger = require('../config/logger');
 
 /**
- * Format database product to API JSON response
+ * Format les DB product records vers le format JSON attendu par le client frontend
  */
 function formatProduct(p) {
   return {
@@ -29,7 +29,7 @@ function formatProduct(p) {
 }
 
 /**
- * Fetch products from Prisma SQLite database with fallback to static catalog.
+ * Fetch les products depuis la DB Prisma SQLite avec fallback safe sur le static catalog
  */
 async function getProductsAsync() {
   try {
@@ -48,7 +48,7 @@ async function getProductsAsync() {
 }
 
 /**
- * Find single product by ID.
+ * Fetch un unique product par son ID
  */
 async function getProductByIdAsync(productId) {
   if (!productId) return null;
@@ -67,7 +67,7 @@ async function getProductByIdAsync(productId) {
 }
 
 /**
- * Update product information and stock in Prisma SQLite DB.
+ * Update les attributes et le stock d'un product dans la DB Prisma SQLite
  */
 async function updateProductAsync(productId, data) {
   if (!productId) return null;
@@ -102,7 +102,7 @@ async function updateProductAsync(productId, data) {
 }
 
 /**
- * Atomically decrement stock quantities for an array of ordered items.
+ * Atomic decrement des stock quantities pour une list d'ordered items
  */
 async function decrementProductStocksAsync(items) {
   if (!items || !Array.isArray(items) || items.length === 0) return true;
@@ -113,7 +113,7 @@ async function decrementProductStocksAsync(items) {
       const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
       if (!prodId) continue;
 
-      // Décrémentation atomique native SQL / Prisma (élimine les race conditions)
+      // Atomic decrement en SQL / Prisma pour bypass les race conditions
       const updated = await prisma.product.update({
         where: { id: prodId },
         data: {

@@ -21,7 +21,7 @@ async function createPaymentIntent(req, res) {
       return res.status(400).json({ error: 'Le panier est vide' });
     }
 
-    // Calculate order total securely on server side and check stock availability
+    // Compute le total de l'order côté serveur et check l'inventaire en DB
     let totalCents = 0;
     const orderItems = [];
 
@@ -30,7 +30,7 @@ async function createPaymentIntent(req, res) {
       if (product) {
         const itemQuantity = Math.max(1, parseInt(item.quantity, 10) || 1);
 
-        // Check if stock is sufficient
+        // Check si le stock est suffisant
         if (product.stockQuantity < itemQuantity) {
           return res.status(400).json({
             error: product.stockQuantity === 0 
@@ -53,7 +53,7 @@ async function createPaymentIntent(req, res) {
       return res.status(400).json({ error: 'Aucun produit valide dans le panier' });
     }
 
-    // 1. Validation serveur des codes promotionnels (BIZ-02)
+    // 1. Validation serveur des coupon codes promo (BIZ-02)
     let discountCents = 0;
     let appliedPromoInfo = null;
 
@@ -76,7 +76,7 @@ async function createPaymentIntent(req, res) {
       }
     }
 
-    // 2. Harmonisation des frais de livraison dynamiques (BIZ-03 & BIZ-05)
+    // 2. Shipping fees harmonisés avec threshold livraison gratuite (BIZ-03 & BIZ-05)
     const shippingCfg = shopConfig.shipping || {};
     const freeThresholdCents = Math.round((shippingCfg.freeShippingThreshold || 60) * 100);
     const isExpress = shippingMethod === 'chronopost' || shippingMethod === 'express_chronopost';
@@ -95,12 +95,12 @@ async function createPaymentIntent(req, res) {
     let paymentIntentId = 'pi_demo_' + Date.now();
     let checkoutUrl = null;
 
-    // Generate collision-proof unique orderId (CWE-330 remediation)
+    // Generate un unique orderId collision-proof (CWE-330 remediation avec CSPRNG)
     const datePrefix = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const uniqueSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
     const generatedOrderId = `ORD-${datePrefix}-${uniqueSuffix}`;
 
-    // If real Stripe key is provided, invoke real Stripe SDK (BIZ-01)
+    // Si la vraie secret key Stripe est set, on call l'API Stripe officielle (BIZ-01)
     const isRealStripeKey = config.STRIPE_SECRET_KEY && 
       config.STRIPE_SECRET_KEY.startsWith('sk_') && 
       !config.STRIPE_SECRET_KEY.includes('mock') && 
@@ -123,7 +123,7 @@ async function createPaymentIntent(req, res) {
       clientSecret = paymentIntent.client_secret;
       paymentIntentId = paymentIntent.id;
 
-      // Création de session Stripe Checkout pour paiement sécurisé 1-clic (Apple Pay, Google Pay, CB 3D-Secure)
+      // Create la session Stripe Checkout pour un 1-click checkout (Apple Pay, Google Pay, CB 3D-Secure)
       try {
         const origin = req.headers.origin || 'http://localhost:5173';
         const session = await stripe.checkout.sessions.create({
@@ -152,7 +152,7 @@ async function createPaymentIntent(req, res) {
       }
     }
 
-    // Save pending order in Prisma DB
+    // Save la pending order dans la base SQLite via Prisma
     const pendingOrder = {
       orderId: generatedOrderId,
       paymentIntentId,
@@ -186,7 +186,7 @@ async function createPaymentIntent(req, res) {
 }
 
 async function confirmDemoPayment(req, res) {
-  // CRITICAL SECURITY: Block simulated payments in production environment
+  // CRITICAL SECURITY: Block les simulated payments en environnement de production
   if (process.env.NODE_ENV === 'production') {
     return res.status(403).json({
       error: 'Accès refusé : Le mode de paiement simulé démo est strictement désactivé en environnement de production.'
@@ -203,7 +203,7 @@ async function confirmDemoPayment(req, res) {
     return res.status(404).json({ error: 'Commande non trouvée' });
   }
 
-  // Idempotency: avoid double processing if order is already paid
+  // Idempotency check: bypass le double-processing si l'order est déjà payée
   if (existingOrder.status === 'paid') {
     return res.json({ success: true, message: 'Paiement déjà confirmé', order: existingOrder });
   }
@@ -217,10 +217,10 @@ async function confirmDemoPayment(req, res) {
       total: updatedOrder.totalAmount
     });
     
-    // Automatically decrement product stocks upon confirmed payment
+    // Auto-decrement du stock des products après confirmation du payment
     await decrementProductStocksAsync(updatedOrder.items);
 
-    // Automatically trigger confirmation email
+    // Trigger l'envoi de l'email de confirmation de commande
     await sendOrderConfirmationEmail(updatedOrder);
 
     return res.json({ success: true, message: 'Paiement confirmé avec succès', order: updatedOrder });
@@ -243,7 +243,7 @@ async function handleWebhook(req, res) {
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
   } else {
-    // Demo webhook fallback (safe parsing of raw body buffer if needed)
+    // Demo webhook fallback (safe parse du raw buffer payload)
     if (Buffer.isBuffer(req.body)) {
       try {
         event = JSON.parse(req.body.toString('utf8'));
@@ -265,7 +265,7 @@ async function handleWebhook(req, res) {
       return res.json({ received: true });
     }
 
-    // Idempotency: avoid double processing on webhook replay
+    // Idempotency check: drop le webhook replay si l'order est déjà paid
     if (existingOrder.status === 'paid') {
       logger.payment(`Commande ${existingOrder.orderId} déjà validée (idempotence webhook).`, { orderId: existingOrder.orderId });
       return res.json({ received: true });
@@ -275,7 +275,7 @@ async function handleWebhook(req, res) {
     if (updatedOrder) {
       logger.payment(`Commande ${updatedOrder.orderId} validée automatiquement par Webhook !`, { orderId: updatedOrder.orderId });
       
-      // Automatically decrement product stocks upon confirmed payment
+      // Auto-decrement du stock des items en DB
       await decrementProductStocksAsync(updatedOrder.items);
 
       await sendOrderConfirmationEmail(updatedOrder);

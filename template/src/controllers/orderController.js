@@ -58,7 +58,7 @@ async function updateOrder(req, res) {
         trackingNumber: trackingNumber || null
       });
 
-      // If status is set to shipped or tracking number is provided, automatically trigger shipping email
+      // Si status set à shipped ou tracking number fourni, trigger auto le shipping email
       if (status === 'shipped' || (trackingNumber && trackingNumber.trim().length > 0)) {
         await sendOrderShippedEmail(updated);
       }
@@ -78,14 +78,14 @@ async function getOrderById(req, res) {
     const email = (req.query.email || req.body?.email || '').toLowerCase().trim();
     if (!orderId) return res.status(400).json({ error: 'ID Commande requis' });
 
-    // Direct indexed Prisma query
+    // Query Prisma directe et indexée
     const order = await getOrderByOrderIdAsync(orderId);
 
     if (!order) {
       return res.status(404).json({ error: 'Commande introuvable' });
     }
 
-    // Protection IDOR / Fuite PII : Exiger l'email client correspondant ou un token admin valide
+    // Protection IDOR / PII leak : Exiger l'email client correspondant ou un token admin valide
     const authHeader = req.headers['authorization'];
     const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
     const token = req.headers['x-admin-token'] || bearerToken;

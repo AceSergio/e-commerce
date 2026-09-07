@@ -1,18 +1,18 @@
 const rateLimit = require('express-rate-limit');
 
-// 1. Limiteur global pour toutes les routes API (200 requêtes / 15 min)
+// 1. Rate limiter global pour toutes les routes de l'API (200 requests / 15 min)
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 200,
-  standardHeaders: true, // Retourne RateLimit-* headers
-  legacyHeaders: false, // Désactive X-RateLimit-* headers
+  standardHeaders: true, // Return les headers standard RateLimit-*
+  legacyHeaders: false, // Disable les legacy headers X-RateLimit-*
   message: {
     success: false,
     error: 'Trop de requêtes envoyées. Veuillez réessayer dans quelques minutes.'
   }
 });
 
-// 2. Limiteur strict pour l'authentification et l'envoi de codes OTP (10 requêtes / 15 min)
+// 2. Rate limiter strict pour l'auth et l'envoi d'OTP codes (10 requests / 15 min)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
@@ -24,7 +24,7 @@ const authLimiter = rateLimit({
   }
 });
 
-// 3. Limiteur strict pour l'initiation de paiements (15 tentatives / 15 min)
+// 3. Rate limiter strict pour checkout / payment initiation (15 requests / 15 min)
 const paymentLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 15,

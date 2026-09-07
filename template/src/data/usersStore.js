@@ -15,12 +15,12 @@ if (!sessionSecret || (isProduction && sessionSecret === 'shop_session_secret_ke
 
 const SESSION_SECRET = sessionSecret;
 
-// Active in-memory caches for high-speed lookups
+// In-memory caches actifs pour fast lookups
 const AUTH_CODES = new Map();
 const AUTH_SESSIONS = new Map();
 
 /**
- * Creates a cryptographically signed session token resilient to server restarts.
+ * Génère un session token cryptographiquement signé via HMAC, resilient aux reboots serveur.
  */
 function createSession(email) {
   const cleanEmail = email.toLowerCase().trim();
@@ -34,13 +34,13 @@ function createSession(email) {
 }
 
 /**
- * Validates a user session token (checks in-memory cache and HMAC signature fallback).
+ * Valide un session token utilisateur (in-memory cache check puis HMAC signature fallback).
  */
 function validateSession(token, email) {
   if (!token || !email) return false;
   const cleanEmail = email.toLowerCase().trim();
 
-  // Fast path: in-memory cache
+  // Fast path: in-memory cache lookup
   const cached = AUTH_SESSIONS.get(token);
   if (cached) {
     if (Date.now() > cached.expiresAt) {
@@ -50,7 +50,7 @@ function validateSession(token, email) {
     return cached.email === cleanEmail;
   }
 
-  // Stateless HMAC fallback (recovers session after server restart)
+  // Stateless HMAC fallback (recover la session après un server restart)
   try {
     const decoded = Buffer.from(token, 'base64url').toString('utf8');
     const parts = decoded.split(':');
@@ -86,12 +86,12 @@ function invalidateSession(token) {
 }
 
 /**
- * Persist OTP Auth Code in SQLite via Prisma (with in-memory fallback).
+ * Persiste le code OTP d'auth en SQLite via Prisma (avec in-memory fallback).
  */
 async function saveAuthCodeAsync(email, code, expiresAt, isRegister, metadata = {}) {
   const cleanEmail = email.toLowerCase().trim();
   
-  // Update memory cache
+  // Update du cache memory
   AUTH_CODES.set(cleanEmail, {
     code,
     expiresAt,
@@ -101,12 +101,12 @@ async function saveAuthCodeAsync(email, code, expiresAt, isRegister, metadata = 
   });
 
   try {
-    // Delete any old pending code for this email
+    // Delete les anciens pending codes pour cet email
     await prisma.authCode.deleteMany({
       where: { email: cleanEmail }
     });
 
-    // Create new code in SQLite
+    // Insert du code dans SQLite
     await prisma.authCode.create({
       data: {
         email: cleanEmail,
@@ -121,18 +121,18 @@ async function saveAuthCodeAsync(email, code, expiresAt, isRegister, metadata = 
 }
 
 /**
- * Retrieve OTP Auth Code from DB or Memory.
+ * Fetch le code OTP d'auth depuis la DB SQLite ou la memory.
  */
 async function getAuthCodeAsync(email) {
   const cleanEmail = email.toLowerCase().trim();
   
-  // Check memory cache first
+  // Check le cache memory first
   const memoryCode = AUTH_CODES.get(cleanEmail);
   if (memoryCode) {
     return memoryCode;
   }
 
-  // Check Prisma SQLite database
+  // Lookup dans la DB SQLite via Prisma
   try {
     const dbRecord = await prisma.authCode.findFirst({
       where: { email: cleanEmail },
@@ -158,7 +158,7 @@ async function getAuthCodeAsync(email) {
 }
 
 /**
- * Delete Auth Code once verified.
+ * Delete le code d'auth une fois verified.
  */
 async function deleteAuthCodeAsync(email) {
   const cleanEmail = email.toLowerCase().trim();
@@ -208,7 +208,7 @@ async function saveUserAsync(user) {
         data: {
           name: user.name,
           address: user.address,
-          deletedAt: null // Restore account if re-registering
+          deletedAt: null // Restore le user account si re-registering
         }
       });
     }
@@ -234,7 +234,7 @@ async function deleteUserAsync(email) {
     });
     if (!user) return { success: false, error: 'Utilisateur non trouvé' };
 
-    // Check if there are active orders in progress within the last 30 days (delivery / return window)
+    // Check si l'user a des active orders en cours sur les 30 derniers jours (delivery / return window)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const activeOrder = await prisma.order.findFirst({
       where: {
@@ -253,7 +253,7 @@ async function deleteUserAsync(email) {
       };
     }
 
-    // Soft delete user account to preserve order history and referential integrity
+    // Soft delete du user account pour préserver l'historique des orders et la referential integrity
     await prisma.user.update({
       where: { id: user.id },
       data: { deletedAt: new Date() }

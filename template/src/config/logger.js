@@ -1,15 +1,15 @@
 /**
- * @fileoverview Système de Journalisation Centralisé et Structuré (Logger)
+ * @fileoverview Système de logging centralisé et structured (Logger Engine)
  * 
  * Architecture du Logger :
- * 1. Moteur Haute Performance : Basé sur Pino pour une sérialisation ultra-rapide en JSON.
- * 2. Multi-Destinations :
- *    - Console (stdout) : Sortie colorisée avec timestamps en développement et production.
- *    - Fichiers locaux (logs/app.log et logs/error.log) : Persistance sur disque avec rotation automatique (> 5 Mo).
- *    - Ring Buffer en mémoire (300 dernières entrées) : Permet à la Console d'Administration
- *      d'interroger en temps réel l'activité système sans surcharge d'I/O disque.
- * 3. Catégorisation Métier : AUTH, ORDER, PAYMENT, STOCK, HTTP, SYSTEM.
- * 4. Mode Test : Silencieux lors des tests automatisés (NODE_ENV === 'test').
+ * 1. Engine high-perf : Basé sur Pino pour une serialization JSON ultra-fast.
+ * 2. Multi-sinks :
+ *    - Console (stdout) : Output colorisé avec timestamps en dev et prod.
+ *    - Fichiers locaux (logs/app.log et logs/error.log) : Persistence sur disk avec log rotation automatique (> 5 Mo).
+ *    - In-memory ring buffer (300 latest entries) : Permet à l'Admin Console
+ *      de pull en realtime l'activité système sans disk I/O overhead.
+ * 3. Categorization business : AUTH, ORDER, PAYMENT, STOCK, HTTP, SYSTEM.
+ * 4. Test mode : Mute les outputs console pendant les unit/integration tests (NODE_ENV === 'test').
  * 
  * @module config/logger
  */
@@ -19,17 +19,17 @@ const path = require('path');
 const { Writable } = require('stream');
 const pino = require('pino');
 
-// Définition des environnements
+// Setup des environments
 const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
 
-// Configuration des répertoires de logs
+// Config des paths pour les log files
 const LOG_DIR = path.join(__dirname, '../../logs');
 const APP_LOG_PATH = path.join(LOG_DIR, 'app.log');
 const ERROR_LOG_PATH = path.join(LOG_DIR, 'error.log');
 const MAX_LOG_FILE_SIZE = 5 * 1024 * 1024; // 5 Mo avant rotation
 
-// Création du répertoire de logs si inexistant
+// Auto-create du log directory si missing
 try {
   if (!fs.existsSync(LOG_DIR)) {
     fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -38,7 +38,7 @@ try {
   console.error('[LOGGER INIT ERROR] Impossible de créer le dossier logs:', err.message);
 }
 
-// Table de correspondance des niveaux Pino
+// Mapping table des log levels de Pino
 const LEVEL_NAMES = {
   10: 'trace',
   20: 'debug',
@@ -59,14 +59,14 @@ const COLOR_CODES = {
   bold: '\x1b[1m'
 };
 
-// Ring Buffer en mémoire pour la console admin (limité aux 300 dernières entrées)
+// In-memory ring buffer pour l'Admin Console (capped à 300 entries max)
 const MAX_BUFFER_SIZE = 300;
 const inMemoryLogs = [];
 let logCounter = 1;
 
 /**
- * Vérifie et effectue la rotation d'un fichier de log si sa taille dépasse MAX_LOG_FILE_SIZE.
- * @param {string} filePath - Chemin absolu du fichier de log.
+ * Check et trigger la rotation du log file si la file size dépasse MAX_LOG_FILE_SIZE.
+ * @param {string} filePath - Absolute path du log file.
  */
 function rotateLogFileIfNeeded(filePath) {
   try {
@@ -81,29 +81,29 @@ function rotateLogFileIfNeeded(filePath) {
       }
     }
   } catch (e) {
-    // Échec silencieux pour ne pas bloquer le flux d'application
+    // Fail-safe silencieux pour ne pas freeze le thread
   }
 }
 
 /**
- * Écrit de façon sécurisée une ligne dans un fichier de log.
- * @param {string} filePath - Chemin du fichier.
- * @param {string} line - Ligne formatée à écrire.
+ * Safe write d'une log line dans le file sur disk.
+ * @param {string} filePath - Path du file.
+ * @param {string} line - Raw formatted line à append.
  */
 function appendToFile(filePath, line) {
   try {
     rotateLogFileIfNeeded(filePath);
     fs.appendFileSync(filePath, line + '\n', 'utf8');
   } catch (err) {
-    // En cas d'erreur I/O disque, on n'arrête pas l'application
+    // Si disk I/O fail, on skip sans crash l'app
   }
 }
 
 /**
- * Stream personnalisé recevant les chunks JSON de Pino et les distribuant :
- * - Vers la console avec formatage coloré
+ * Custom stream qui pipe les chunks JSON Pino et les dispatch :
+ * - Vers la stdout avec color formatting
  * - Vers logs/app.log et logs/error.log
- * - Vers le ring buffer mémoire pour l'API Admin
+ * - Vers le ring buffer en memory pour l'Admin API
  */
 const customStream = new Writable({
   write(chunk, encoding, callback) {
@@ -117,7 +117,7 @@ const customStream = new Writable({
       const message = obj.msg || '';
       const category = (obj.category || (obj.req ? 'HTTP' : 'APP')).toUpperCase();
 
-      // Extraction des métadonnées additionnelles
+      // Extraction des custom metadata additionnelles
       const details = { ...obj };
       delete details.level;
       delete details.time;
@@ -128,7 +128,7 @@ const customStream = new Writable({
 
       const hasDetails = Object.keys(details).length > 0;
 
-      // 1. Stockage en Ring Buffer mémoire
+      // 1. Store dans le ring buffer en memory
       const logEntry = {
         id: `log-${Date.now()}-${logCounter++}`,
         timestamp,
@@ -143,7 +143,7 @@ const customStream = new Writable({
         inMemoryLogs.shift();
       }
 
-      // 2. Écriture dans les fichiers de logs
+      // 2. Append dans les log files sur disk
       const fileLine = `[${timestamp}] [${level.toUpperCase()}] [${category}] ${message}${
         hasDetails ? ' ' + JSON.stringify(details) : ''
       }`;
@@ -154,7 +154,7 @@ const customStream = new Writable({
         appendToFile(ERROR_LOG_PATH, fileLine);
       }
 
-      // 3. Affichage Console (sauf en environnement de test)
+      // 3. Output console (mute en env de test)
       if (!isTest) {
         let color = COLOR_CODES.green;
         if (level === 'warn') color = COLOR_CODES.yellow;
@@ -171,13 +171,13 @@ const customStream = new Writable({
         }
       }
     } catch (e) {
-      // Fallback en cas d'erreur de parsing
+      // Fallback safe si parsing error
     }
     callback();
   }
 });
 
-// Création de l'instance Pino avec le customStream
+// Init de l'instance Pino avec notre customStream
 const pinoInstance = pino(
   {
     level: process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug')
@@ -186,14 +186,14 @@ const pinoInstance = pino(
 );
 
 /**
- * Récupère les logs récents depuis le Ring Buffer avec filtrage et pagination.
+ * Fetch les logs récents depuis le Ring Buffer avec filters et pagination.
  * 
- * @param {Object} options - Options de filtrage.
- * @param {number} [options.limit=100] - Nombre maximum d'entrées à retourner (max 300).
- * @param {string} [options.level] - Filtrer par niveau ('all', 'info', 'warn', 'error', 'debug').
- * @param {string} [options.category] - Filtrer par catégorie ('AUTH', 'PAYMENT', 'ORDER', 'STOCK', etc.).
- * @param {string} [options.search] - Recherche textuelle dans les messages et détails.
- * @returns {Array<Object>} Liste des logs ordonnés du plus récent au plus ancien.
+ * @param {Object} options - Filtering options.
+ * @param {number} [options.limit=100] - Max logs à return (cap à 300 max).
+ * @param {string} [options.level] - Filter par log level ('all', 'info', 'warn', 'error', 'debug').
+ * @param {string} [options.category] - Filter par business category ('AUTH', 'PAYMENT', 'ORDER', 'STOCK', etc.).
+ * @param {string} [options.search] - Fulltext query search dans les messages et metadata details.
+ * @returns {Array<Object>} List des logs triés du plus recent au plus old.
  */
 function getRecentLogs({ limit = 100, level, category, search } = {}) {
   let filtered = [...inMemoryLogs];
@@ -219,13 +219,13 @@ function getRecentLogs({ limit = 100, level, category, search } = {}) {
   }
 
   const safeLimit = Math.min(300, Math.max(1, parseInt(limit, 10) || 100));
-  // Ordonner du plus récent au plus ancien
+  // Sort du plus recent au plus old
   return filtered.reverse().slice(0, safeLimit);
 }
 
 /**
- * Calcule les statistiques d'activité à partir des logs enregistrés.
- * @returns {Object} Statistiques par niveau et volume total.
+ * Compute les stats d'activité par log level à partir des buffered entries.
+ * @returns {Object} Stats par level et total count.
  */
 function getLogStats() {
   const stats = {
@@ -246,7 +246,7 @@ function getLogStats() {
 }
 
 /**
- * Réinitialise le buffer de logs en mémoire.
+ * Flush et reset le buffer de logs en memory.
  */
 function clearLogs() {
   inMemoryLogs.length = 0;
@@ -254,32 +254,32 @@ function clearLogs() {
 }
 
 /**
- * Retourne le chemin du fichier de logs principal.
- * @returns {string} Chemin absolu vers app.log.
+ * Return le path absolu vers le main app.log file.
+ * @returns {string} Absolute path vers app.log.
  */
 function getLogFilePath() {
   return APP_LOG_PATH;
 }
 
-// Extension de l'objet Pino avec des helpers métier pratiques
+// Extend de l'instance Pino avec des custom helpers business
 pinoInstance.getRecentLogs = getRecentLogs;
 pinoInstance.getLogStats = getLogStats;
 pinoInstance.clearLogs = clearLogs;
 pinoInstance.getLogFilePath = getLogFilePath;
 
 /**
- * Helper générique pour émettre un log structuré avec catégorie.
+ * Generic helper pour trigger un structured log avec business tag.
  * @param {string} level - 'info' | 'warn' | 'error' | 'debug'.
- * @param {string} category - Catégorie métier (AUTH, ORDER, PAYMENT, STOCK, SYSTEM).
- * @param {string} message - Message explicatif.
- * @param {Object} [details] - Données additionnelles facultatives.
+ * @param {string} category - Business category (AUTH, ORDER, PAYMENT, STOCK, SYSTEM).
+ * @param {string} message - Message explicatif du log.
+ * @param {Object} [details] - Extra metadata payload facultatif.
  */
 pinoInstance.logCategory = function (level, category, message, details = {}) {
   const method = pinoInstance[level] || pinoInstance.info;
   method.call(pinoInstance, { category, ...details }, message);
 };
 
-// Raccourcis pratiques par domaine métier
+// Shortcuts pratiques par business domain
 pinoInstance.system = (msg, details) => pinoInstance.logCategory('info', 'SYSTEM', msg, details);
 pinoInstance.auth = (msg, details) => pinoInstance.logCategory('info', 'AUTH', msg, details);
 pinoInstance.order = (msg, details) => pinoInstance.logCategory('info', 'ORDER', msg, details);
