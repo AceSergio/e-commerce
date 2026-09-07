@@ -7,7 +7,7 @@
 [![SQLite WAL](https://img.shields.io/badge/SQLite-WAL%20Mode-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Stripe](https://img.shields.io/badge/Stripe-Checkout-008CDD?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com/)
 [![Security Audited](https://img.shields.io/badge/Security-OWASP%20Audited-10B981?style=for-the-badge&logo=shield&logoColor=white)](#-sécurité--fiabilité-de-niveau-production)
-[![Tests Passing](https://img.shields.io/badge/Tests-6%2F6%20Passing-success?style=for-the-badge&logo=checkmarx&logoColor=white)](#-qualité--tests-automatisés)
+[![Tests Passing](https://img.shields.io/badge/Tests-36%2F36%20Passing-success?style=for-the-badge&logo=checkmarx&logoColor=white)](#-qualité--tests-automatisés)
 
 > Plateforme e-commerce moderne, performante et haut de gamme développée avec **React 19**, **Express 5**, **Prisma ORM** et **Stripe**.  
 > Conçue selon les standards d'ingénierie logicielle et de cybersécurité (**OWASP Top 10**, intégrité transactionnelle, conformité **RGPD** et tunnel d'achat certifié).
@@ -113,7 +113,8 @@ e-commerce/
     │   ├── routes/              # Routes REST sécurisées
     │   └── services/            # Service d'envoi d'e-mails (SMTP / fallback dev)
     ├── tests/                   # Suite de tests automatisés (Node.js test runner natif)
-    │   └── app.test.js          # Tests E2E santé, catalogue, checkout, auth et RGPD
+    │   ├── app.test.js          # Tests d'intégration API, santé, catalogue, checkout, auth et RGPD
+    │   └── unit.test.js         # Tests unitaires (sécurité HMAC, logger ring buffer, inventaire, règles métier)
     └── server.js                # Point d'entrée du serveur backend
 ```
 
@@ -167,22 +168,30 @@ npm run dev
 
 ## 🧪 Qualité & Tests Automatisés
 
-Le projet intègre une suite de tests automatisés exécutée via le test runner natif de Node.js, couvrant l'ensemble du flux critique :
+Le projet intègre une suite complète de **36 tests automatisés** exécutée via le test runner natif de Node.js, séparée en tests d'intégration API et tests unitaires isolés :
 
 ```bash
 cd template
+
+# Exécuter l'intégralité de la suite (36 tests)
 npm test
+
+# Exécuter uniquement les tests unitaires isolés (29 tests)
+npm run test:unit
+
+# Exécuter uniquement les tests d'intégration API (7 tests)
+npm run test:integration
 ```
 
 Résultat des tests :
 ```text
-✔ GET /api/health should return ok status
-✔ GET /api/products should return product catalogue
-✔ POST /api/create-payment-intent rejects empty cart
-✔ POST /api/create-payment-intent validates promo and creates order
-✔ GET /api/orders enforces admin authorization & pagination
-✔ Auth & GDPR: send OTP, verify code, export data & soft delete
-ℹ tests 6 | pass 6 | fail 0
+✔ Suite 1: Sécurité, Authentification & Sessions Cryptographiques (7/7 passés)
+✔ Suite 2: Logger Structuré & Ring Buffer Haute Performance (8/8 passés)
+✔ Suite 3: Catalogue, Produits & Décrémentation de Stock (5/5 passés)
+✔ Suite 4: Gestion des Commandes & Suivi Transporteur (4/4 passés)
+✔ Suite 5: Règles Métier, Calculs Financiers & Conformité RGPD (5/5 passés)
+✔ E-Commerce Core API Suite d'Intégration (7/7 passés)
+ℹ tests 36 | pass 36 | fail 0
 ```
 
 Vérification de la conformité du code avec **Oxlint** :
