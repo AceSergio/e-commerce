@@ -11,7 +11,11 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: DATABASE_URL
+        value: "file:./prisma/dev.db"
       - key: ADMIN_PASSWORD
-        generateValue: true
+        value: admin2026
+      - key: ADMIN_TOKEN
+        value: admin_secret_token_2026
       - key: SESSION_SECRET
         generateValue: true

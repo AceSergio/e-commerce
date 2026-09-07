@@ -47,13 +47,16 @@ app.use(
 
 app.use(compression());
 
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? [process.env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:3000']
-  : ['http://localhost:5173', 'http://localhost:3000'];
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+  ...(process.env.RENDER_EXTERNAL_URL ? [process.env.RENDER_EXTERNAL_URL] : [])
+];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.onrender.com')) {
       return callback(null, true);
     }
     return callback(null, false);

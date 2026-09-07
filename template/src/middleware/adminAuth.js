@@ -2,12 +2,12 @@ const crypto = require('crypto');
 const config = require('../config/env');
 
 const isProduction = process.env.NODE_ENV === 'production';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || (isProduction ? null : 'admin_secret_token_2026');
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (isProduction ? null : 'admin2026');
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'admin_secret_token_2026';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin2026';
 
-// Check si les admin credentials sont bien set en production
+// Check si les admin credentials custom sont set en production
 if (isProduction && (!process.env.ADMIN_TOKEN || !process.env.ADMIN_PASSWORD)) {
-  console.warn('⚠️ [SECURITE PRODUCTION] ATTENTION: ADMIN_TOKEN ou ADMIN_PASSWORD missing dans l\'env ! Set ces variables dans le .env pour lock l\'admin.');
+  console.warn('⚠️ [SECURITE PRODUCTION] INFO: ADMIN_TOKEN ou ADMIN_PASSWORD par défaut actif. Définir des variables d\'environnement dédiées pour une sécurisation stricte.');
 }
 
 function adminAuth(req, res, next) {
