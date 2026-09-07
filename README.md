@@ -59,7 +59,7 @@
 
 ## 🔒 Sécurité & Fiabilité de Niveau Production
 
-Ce projet a fait l'objet d'un audit de sécurité approfondi (rapport complet disponible dans [`AUDIT.md`](./AUDIT.md)) :
+Ce projet intègre les meilleures pratiques de sécurité logicielle et de résilience (conformité OWASP Top 10) :
 
 | Risque / Norme | Solution Technique Implémentée |
 | :--- | :--- |
@@ -105,8 +105,8 @@ Ce projet a fait l'objet d'un audit de sécurité approfondi (rapport complet di
 
 ```text
 e-commerce/
-├── AUDIT.md                     # Rapport complet de l'audit de sécurité et de robustesse
-├── PROJECT_STATE.md             # Historique d'état du projet et journal de bord
+├── README.md                    # Documentation complète et guide de démarrage
+├── render.yaml                  # Configuration de déploiement cloud (Render)
 ├── .gitignore                   # Exclusion stricte des secrets (.env), bases et builds
 └── template/                    # Code source de la plateforme
     ├── config/                  # Configuration centralisée de la boutique
