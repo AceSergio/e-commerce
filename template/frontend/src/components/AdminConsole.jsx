@@ -20,7 +20,9 @@ import {
   Users,
   Download,
   Check,
-  Star
+  Star,
+  Terminal,
+  Trash2
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import InvoiceModal from './InvoiceModal';
@@ -58,6 +60,79 @@ export default function AdminConsole({ isOpen, onClose }) {
 
   // Inline Product Drafts map: productId -> { price, stockQuantity, popular, isSaving }
   const [productDrafts, setProductDrafts] = useState({});
+
+  // System Logs State
+  const [serverLogs, setServerLogs] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [logLevelFilter, setLogLevelFilter] = useState('all');
+  const [logCategoryFilter, setLogCategoryFilter] = useState('all');
+  const [logSearch, setLogSearch] = useState('');
+  const [logStats, setLogStats] = useState({ total: 0, info: 0, warn: 0, error: 0 });
+  const [autoRefreshLogs, setAutoRefreshLogs] = useState(true);
+
+  // Fetch Server Logs from API
+  const fetchServerLogs = async () => {
+    if (!adminToken) return;
+    try {
+      setLoadingLogs(true);
+      const params = new URLSearchParams();
+      if (logLevelFilter !== 'all') params.set('level', logLevelFilter);
+      if (logCategoryFilter !== 'all') params.set('category', logCategoryFilter);
+      if (logSearch.trim()) params.set('search', logSearch.trim());
+      params.set('limit', '150');
+
+      const res = await fetch(`/api/admin/logs?${params.toString()}`, {
+        headers: { 'x-admin-token': adminToken }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setServerLogs(data.logs || []);
+        if (data.stats) setLogStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Erreur chargement logs:', err);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  const handleClearLogs = async () => {
+    if (!window.confirm('Voulez-vous réinitialiser le journal des logs serveur ?')) return;
+    try {
+      const res = await fetch('/api/admin/logs', {
+        method: 'DELETE',
+        headers: { 'x-admin-token': adminToken }
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Journal des logs réinitialisé avec succès', 'success');
+        fetchServerLogs();
+      }
+    } catch {
+      showToast('Impossible de réinitialiser les logs', 'error');
+    }
+  };
+
+  const handleDownloadLogs = async () => {
+    try {
+      const res = await fetch('/api/admin/logs/download', {
+        headers: { 'x-admin-token': adminToken }
+      });
+      if (!res.ok) throw new Error('Échec téléchargement');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lumen-server-${new Date().toISOString().slice(0, 10)}.log`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('Fichier app.log téléchargé avec succès', 'success');
+    } catch {
+      showToast('Erreur lors du téléchargement des logs', 'error');
+    }
+  };
 
   // 1. Fetch All Admin Data
   const fetchAdminData = async () => {
@@ -112,6 +187,19 @@ export default function AdminConsole({ isOpen, onClose }) {
       fetchAdminData();
     }
   }, [isOpen, adminToken]);
+
+  useEffect(() => {
+    if (isOpen && adminToken && activeTab === 'system') {
+      fetchServerLogs();
+
+      if (autoRefreshLogs) {
+        const timer = setInterval(() => {
+          fetchServerLogs();
+        }, 4000);
+        return () => clearInterval(timer);
+      }
+    }
+  }, [isOpen, adminToken, activeTab, autoRefreshLogs, logLevelFilter, logCategoryFilter, logSearch]);
 
   // 2. Login & Logout
   const handleLogin = async (e) => {
@@ -1848,6 +1936,279 @@ export default function AdminConsole({ isOpen, onClose }) {
                         <span style={{ color: 'var(--cream-muted)', display: 'block', fontSize: '0.78rem' }}>Sécurité Session Admin</span>
                         <strong style={{ color: 'var(--gold-light)', fontSize: '1rem' }}>Jeton Chiffré Actif</strong>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* =========================================================================
+                      LIVE LOG VIEWER & TERMINAL
+                     ========================================================================= */}
+                  <div style={{ marginTop: '2.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.2rem', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div>
+                        <h4 style={{ fontSize: '1.3rem', color: 'var(--cream-bright)', display: 'flex', alignItems: 'center', gap: '10px', margin: 0, fontFamily: 'var(--font-serif)' }}>
+                          <Terminal size={22} color="var(--gold-primary)" /> Journal d'Événements & Supervision en Temps Réel
+                        </h4>
+                        <p style={{ fontSize: '0.84rem', color: 'var(--cream-muted)', marginTop: '4px' }}>
+                          Surveillance continue des flux de commandes, paiements, sécurité OTP et transactions de stock.
+                        </p>
+                      </div>
+
+                      {/* Stat Badges */}
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ background: 'rgba(255, 255, 255, 0.06)', border: '1px solid var(--border-subtle)', padding: '5px 12px', borderRadius: '12px', fontSize: '0.8rem', color: 'var(--cream-light)' }}>
+                          Total : <strong style={{ color: '#fff' }}>{logStats.total || serverLogs.length}</strong>
+                        </span>
+                        <span style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '5px 12px', borderRadius: '12px', fontSize: '0.8rem', color: '#10b981' }}>
+                          Info : <strong>{logStats.info || 0}</strong>
+                        </span>
+                        <span style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '5px 12px', borderRadius: '12px', fontSize: '0.8rem', color: '#f59e0b' }}>
+                          Avertissements : <strong>{logStats.warn || 0}</strong>
+                        </span>
+                        <span style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '5px 12px', borderRadius: '12px', fontSize: '0.8rem', color: '#ef4444' }}>
+                          Erreurs : <strong>{logStats.error || 0}</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Toolbar & Filters */}
+                    <div style={{ background: 'rgba(20, 14, 10, 0.9)', border: '1px solid var(--border-subtle)', borderRadius: '16px 16px 0 0', padding: '1rem 1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                      {/* Left: Filters & Search */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
+                        {/* Search Input */}
+                        <div style={{ position: 'relative', minWidth: '200px' }}>
+                          <Search size={15} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--cream-dark)' }} />
+                          <input
+                            type="text"
+                            placeholder="Filtrer les logs..."
+                            value={logSearch}
+                            onChange={(e) => setLogSearch(e.target.value)}
+                            style={{
+                              padding: '0.45rem 0.8rem 0.45rem 2.1rem',
+                              background: '#0a0a0c',
+                              border: '1px solid var(--border-subtle)',
+                              borderRadius: '8px',
+                              color: '#fff',
+                              fontSize: '0.82rem',
+                              width: '100%'
+                            }}
+                          />
+                        </div>
+
+                        {/* Level Filter Tabs */}
+                        <div style={{ display: 'flex', gap: '4px', background: '#0a0a0c', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                          {['all', 'info', 'warn', 'error'].map((lvl) => (
+                            <button
+                              key={lvl}
+                              type="button"
+                              onClick={() => setLogLevelFilter(lvl)}
+                              style={{
+                                background: logLevelFilter === lvl ? 'rgba(212, 175, 55, 0.2)' : 'transparent',
+                                border: logLevelFilter === lvl ? '1px solid var(--gold-primary)' : '1px solid transparent',
+                                color: logLevelFilter === lvl ? 'var(--gold-light)' : 'var(--cream-muted)',
+                                padding: '3px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.78rem',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {lvl === 'all' ? 'Tous' : lvl.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Category Filter */}
+                        <select
+                          value={logCategoryFilter}
+                          onChange={(e) => setLogCategoryFilter(e.target.value)}
+                          style={{
+                            padding: '0.45rem 0.8rem',
+                            background: '#0a0a0c',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: '8px',
+                            color: 'var(--cream-light)',
+                            fontSize: '0.82rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="all">Toutes Catégories</option>
+                          <option value="AUTH">🔐 AUTH</option>
+                          <option value="ORDER">📦 ORDER</option>
+                          <option value="PAYMENT">💳 PAYMENT</option>
+                          <option value="STOCK">📉 STOCK</option>
+                          <option value="HTTP">🌐 HTTP</option>
+                          <option value="SYSTEM">⚙️ SYSTEM</option>
+                        </select>
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--cream-muted)', cursor: 'pointer', marginRight: '6px' }}>
+                          <input
+                            type="checkbox"
+                            checked={autoRefreshLogs}
+                            onChange={(e) => setAutoRefreshLogs(e.target.checked)}
+                            style={{ accentColor: 'var(--gold-primary)' }}
+                          />
+                          Direct (4s)
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={fetchServerLogs}
+                          disabled={loadingLogs}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            border: '1px solid var(--border-subtle)',
+                            color: 'var(--cream-light)',
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: '8px',
+                            fontSize: '0.8rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer'
+                          }}
+                          title="Rafraîchir les logs"
+                        >
+                          <RefreshCw size={13} className={loadingLogs ? 'animate-spin' : ''} />
+                          <span>Actualiser</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleDownloadLogs}
+                          style={{
+                            background: 'rgba(212, 175, 55, 0.12)',
+                            border: '1px solid rgba(212, 175, 55, 0.3)',
+                            color: 'var(--gold-light)',
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: '8px',
+                            fontSize: '0.8rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer'
+                          }}
+                          title="Télécharger le fichier app.log"
+                        >
+                          <Download size={13} />
+                          <span>Exporter</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleClearLogs}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            color: '#ef4444',
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: '8px',
+                            fontSize: '0.8rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer'
+                          }}
+                          title="Réinitialiser le buffer de logs"
+                        >
+                          <Trash2 size={13} />
+                          <span>Vider</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Dark Terminal Box */}
+                    <div
+                      style={{
+                        background: '#07080a',
+                        border: '1px solid var(--border-subtle)',
+                        borderTop: 'none',
+                        borderRadius: '0 0 16px 16px',
+                        padding: '1rem',
+                        height: '420px',
+                        overflowY: 'auto',
+                        fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                        fontSize: '0.82rem',
+                        lineHeight: '1.6',
+                        color: '#d1d5db',
+                        boxShadow: 'inset 0 4px 20px rgba(0,0,0,0.8)'
+                      }}
+                    >
+                      {serverLogs.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--cream-dark)' }}>
+                          <Terminal size={36} style={{ margin: '0 auto 12px auto', opacity: 0.3 }} />
+                          <p>Aucun événement enregistré correspondant aux filtres.</p>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {serverLogs.map((log) => {
+                            const isWarn = log.level === 'warn';
+                            const isError = log.level === 'error';
+                            const isDebug = log.level === 'debug';
+
+                            const levelColor = isError ? '#ef4444' : isWarn ? '#f59e0b' : isDebug ? '#38bdf8' : '#10b981';
+                            const levelBg = isError ? 'rgba(239, 68, 68, 0.15)' : isWarn ? 'rgba(245, 158, 11, 0.15)' : isDebug ? 'rgba(56, 189, 248, 0.15)' : 'rgba(16, 185, 129, 0.15)';
+                            const timeStr = log.timestamp ? log.timestamp.substring(11, 19) : '';
+
+                            return (
+                              <div
+                                key={log.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'baseline',
+                                  gap: '10px',
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  background: 'rgba(255, 255, 255, 0.015)',
+                                  borderLeft: `3px solid ${levelColor}`,
+                                  wordBreak: 'break-word'
+                                }}
+                              >
+                                <span style={{ color: '#6b7280', fontSize: '0.75rem', flexShrink: 0 }}>
+                                  {timeStr}
+                                </span>
+
+                                <span
+                                  style={{
+                                    background: levelBg,
+                                    color: levelColor,
+                                    fontWeight: '700',
+                                    fontSize: '0.7rem',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    textTransform: 'uppercase',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {log.level}
+                                </span>
+
+                                <span
+                                  style={{
+                                    color: 'var(--gold-light)',
+                                    fontWeight: '600',
+                                    fontSize: '0.74rem',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  [{log.category || 'APP'}]
+                                </span>
+
+                                <span style={{ color: isError ? '#fca5a5' : isWarn ? '#fde68a' : '#e5e7eb', flex: 1 }}>
+                                  {log.message}
+                                  {log.details && (
+                                    <span style={{ marginLeft: '8px', color: '#9ca3af', fontSize: '0.74rem' }}>
+                                      {JSON.stringify(log.details)}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

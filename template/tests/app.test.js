@@ -210,4 +210,43 @@ describe('E-Commerce Core API Suite', () => {
     assert.equal(exportData.data.user.email, testUserEmail);
     assert.ok(Array.isArray(exportData.data.orders));
   });
+
+  it('Admin Logger: requires auth, returns logs & stats, and supports reset', async () => {
+    // 1. Unauthorized access without token -> 401
+    const unauthRes = await fetch(`${baseUrl}/api/admin/logs`);
+    assert.equal(unauthRes.status, 401);
+
+    // 2. Generate a test log entry
+    const logger = require('../src/config/logger');
+    logger.order('Test commande log pour suite de tests', { testId: 123 });
+    logger.error({ category: 'PAYMENT', testError: true }, 'Test erreur de paiement');
+
+    // 3. Authorized access with admin token -> 200
+    const authRes = await fetch(`${baseUrl}/api/admin/logs?limit=50`, {
+      headers: { 'x-admin-token': process.env.ADMIN_TOKEN }
+    });
+    assert.equal(authRes.status, 200);
+    const data = await authRes.json();
+    assert.equal(data.success, true);
+    assert.ok(Array.isArray(data.logs));
+    assert.ok(data.count > 0);
+    assert.ok(data.stats);
+    assert.ok(typeof data.stats.total === 'number');
+
+    // 4. Test download endpoint -> 200
+    const downloadRes = await fetch(`${baseUrl}/api/admin/logs/download`, {
+      headers: { 'x-admin-token': process.env.ADMIN_TOKEN }
+    });
+    assert.equal(downloadRes.status, 200);
+    assert.ok(downloadRes.headers.get('content-disposition'));
+
+    // 5. Test clear logs -> 200
+    const clearRes = await fetch(`${baseUrl}/api/admin/logs`, {
+      method: 'DELETE',
+      headers: { 'x-admin-token': process.env.ADMIN_TOKEN }
+    });
+    assert.equal(clearRes.status, 200);
+    const clearData = await clearRes.json();
+    assert.equal(clearData.success, true);
+  });
 });

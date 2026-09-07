@@ -11,6 +11,7 @@ const {
   updateOrderStatusByPaymentIntentIdAsync
 } = require('../data/ordersStore');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
+const logger = require('../config/logger');
 
 async function createPaymentIntent(req, res) {
   try {
@@ -210,7 +211,11 @@ async function confirmDemoPayment(req, res) {
   const updatedOrder = await updateOrderStatusByOrderIdAsync(orderId, 'paid');
 
   if (updatedOrder) {
-    console.log(`[AUTOMATION DB] Commande ${updatedOrder.orderId} confirmée et payée par ${updatedOrder.customerInfo?.email || 'le client'}.`);
+    logger.payment(`Commande ${updatedOrder.orderId} confirmée et payée par ${updatedOrder.customerInfo?.email || 'le client'}.`, {
+      orderId: updatedOrder.orderId,
+      email: updatedOrder.customerInfo?.email,
+      total: updatedOrder.totalAmount
+    });
     
     // Automatically decrement product stocks upon confirmed payment
     await decrementProductStocksAsync(updatedOrder.items);
@@ -234,7 +239,7 @@ async function handleWebhook(req, res) {
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     } catch (err) {
-      console.error('Erreur signature webhook:', err.message);
+      logger.error({ category: 'PAYMENT', error: err.message }, 'Erreur signature webhook Stripe');
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
   } else {
@@ -252,23 +257,23 @@ async function handleWebhook(req, res) {
 
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object;
-    console.log(`[STRIPE WEBHOOK DB] Paiement réussi pour Intent: ${paymentIntent.id}`);
+    logger.payment(`Paiement réussi pour Intent: ${paymentIntent.id}`, { paymentIntentId: paymentIntent.id });
     
     const existingOrder = await getOrderByPaymentIntentIdAsync(paymentIntent.id);
     if (!existingOrder) {
-      console.warn(`[STRIPE WEBHOOK DB] Aucune commande trouvée pour PaymentIntent: ${paymentIntent.id}`);
+      logger.warn({ category: 'PAYMENT', paymentIntentId: paymentIntent.id }, 'Aucune commande trouvée pour PaymentIntent');
       return res.json({ received: true });
     }
 
     // Idempotency: avoid double processing on webhook replay
     if (existingOrder.status === 'paid') {
-      console.log(`[STRIPE WEBHOOK DB] Commande ${existingOrder.orderId} déjà validée (idempotence).`);
+      logger.payment(`Commande ${existingOrder.orderId} déjà validée (idempotence webhook).`, { orderId: existingOrder.orderId });
       return res.json({ received: true });
     }
 
     const updatedOrder = await updateOrderStatusByPaymentIntentIdAsync(paymentIntent.id, 'paid');
     if (updatedOrder) {
-      console.log(`[AUTOMATION DB] Commande ${updatedOrder.orderId} validée automatiquement par Webhook !`);
+      logger.payment(`Commande ${updatedOrder.orderId} validée automatiquement par Webhook !`, { orderId: updatedOrder.orderId });
       
       // Automatically decrement product stocks upon confirmed payment
       await decrementProductStocksAsync(updatedOrder.items);

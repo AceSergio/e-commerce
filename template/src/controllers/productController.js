@@ -1,4 +1,5 @@
 const { getProductsAsync, getProductByIdAsync, updateProductAsync } = require('../data/productsStore');
+const logger = require('../config/logger');
 
 async function getProducts(req, res) {
   try {
@@ -6,6 +7,7 @@ async function getProducts(req, res) {
     res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json({ success: true, products });
   } catch (error) {
+    logger.error({ category: 'SYSTEM', error: error.message }, 'Erreur lors de la récupération des produits');
     res.status(500).json({ success: false, error: 'Erreur lors de la récupération des produits' });
   }
 }
@@ -27,14 +29,19 @@ async function updateProduct(req, res) {
       return res.status(500).json({ error: 'Échec de la mise à jour du produit' });
     }
 
-    console.log(`[ADMIN PRISMA] 🏷️ Produit "${updated.name}" (${id}) mis à jour : Stock=${updated.stockQuantity}, Prix=${updated.price}€`);
+    logger.stock(`Produit "${updated.name}" (${id}) mis à jour : Stock=${updated.stockQuantity}, Prix=${updated.price}€`, {
+      productId: id,
+      name: updated.name,
+      stockQuantity: updated.stockQuantity,
+      price: updated.price
+    });
     res.json({
       success: true,
       message: `Produit "${updated.name}" mis à jour avec succès`,
       product: updated
     });
   } catch (error) {
-    console.error('Erreur updateProduct:', error);
+    logger.error({ category: 'STOCK', error: error.message }, 'Erreur updateProduct');
     res.status(500).json({ error: 'Erreur lors de la mise à jour du produit' });
   }
 }

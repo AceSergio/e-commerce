@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const DEFAULT_PRODUCTS = require('./products');
+const logger = require('../config/logger');
 
 /**
  * Format database product to API JSON response
@@ -121,11 +122,16 @@ async function decrementProductStocksAsync(items) {
           }
         }
       });
-      console.log(`[STOCK ATOMIQUE] 📉 Stock décrémenté pour "${updated.name}" : nouveau stock = ${updated.stockQuantity} (-${qty})`);
+      logger.stock(`Stock décrémenté pour "${updated.name}" : nouveau stock = ${updated.stockQuantity} (-${qty})`, {
+        productId: prodId,
+        name: updated.name,
+        newStock: updated.stockQuantity,
+        decrementedBy: qty
+      });
     }
     return true;
   } catch (err) {
-    console.error('Erreur Prisma decrementProductStocksAsync:', err.message);
+    logger.error({ category: 'STOCK', error: err.message }, 'Erreur Prisma decrementProductStocksAsync');
     return false;
   }
 }

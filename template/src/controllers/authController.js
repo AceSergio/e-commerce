@@ -11,6 +11,7 @@ const {
 } = require('../data/usersStore');
 const { getUserOrdersAsync } = require('../data/ordersStore');
 const { sendAuthCodeEmail } = require('../services/emailService');
+const logger = require('../config/logger');
 
 async function sendCode(req, res) {
   try {
@@ -39,7 +40,10 @@ async function sendCode(req, res) {
     // Persist code in SQLite via Prisma (with memory caching)
     await saveAuthCodeAsync(cleanEmail, otpCode, expiresAt, isRegister, { name, address });
 
-    console.log(`[AUTH SERVER] ✉️ Code d'accès (${isRegister ? 'Inscription' : 'Connexion'}) pour ${cleanEmail} : ${otpCode}`);
+    logger.auth(`Code d'accès (${isRegister ? 'Inscription' : 'Connexion'}) généré pour ${cleanEmail}`, {
+      email: cleanEmail,
+      isRegister: !!isRegister
+    });
 
     // Send real email via SMTP if configured (or fallback log)
     await sendAuthCodeEmail(cleanEmail, otpCode, isRegister);
@@ -57,7 +61,7 @@ async function sendCode(req, res) {
 
     res.json(responseObj);
   } catch (error) {
-    console.error('Erreur sendCode:', error);
+    logger.error({ category: 'AUTH', error: error.message }, 'Erreur lors de l\'envoi du code d\'accès');
     res.status(500).json({ error: 'Erreur lors de l\'envoi du code d\'accès' });
   }
 }
@@ -169,9 +173,10 @@ async function deleteAccount(req, res) {
 
     if (token) invalidateSession(token);
 
-    console.log(`[AUTH SERVER] 🗑️ Compte (Soft Delete) effectué pour ${cleanEmail}`);
+    logger.auth(`Compte supprimé (Soft Delete RGPD) pour ${cleanEmail}`, { email: cleanEmail });
     res.json({ success: true, message: 'Compte supprimé avec succès (données archivées en conformité)' });
   } catch (error) {
+    logger.error({ category: 'AUTH', error: error.message }, 'Erreur lors de la suppression du compte');
     res.status(500).json({ error: 'Erreur lors de la suppression du compte' });
   }
 }

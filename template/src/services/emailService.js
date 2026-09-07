@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
 const config = require('../config/env');
 const shopConfig = require('../../config/shop.config');
+const logger = require('../config/logger');
 
 function getTransporter() {
   if (config.SMTP_HOST && config.SMTP_USER && config.SMTP_PASS) {
@@ -73,13 +74,14 @@ async function sendAuthCodeEmail(email, code, isRegister) {
         text: textContent,
         html: htmlContent
       });
-      console.log(`✉️ [EMAIL SMTP] Code OTP envoyé avec succès à ${email} (MessageId: ${info.messageId})`);
+      logger.auth(`E-mail OTP envoyé via SMTP à ${email}`, { messageId: info.messageId });
       return true;
     } catch (err) {
-      console.error(`❌ [EMAIL SMTP] Erreur d'envoi SMTP à ${email}:`, err.message);
+      logger.error({ category: 'AUTH', error: err.message }, `Erreur d'envoi SMTP à ${email}`);
     }
   }
 
+  logger.auth(`Simulation e-mail OTP générée pour ${email}`, { email });
   console.log(`\n=================================================================`);
   console.log(`✉️ [EMAIL REAL SERVICE / FALLBACK LOG] CODE OTP D'ACCÈS`);
   console.log(`-----------------------------------------------------------------`);
@@ -117,10 +119,10 @@ async function sendOrderConfirmationEmail(order) {
         subject,
         text: textContent
       });
-      console.log(`✉️ [EMAIL SMTP] Confirmation de commande ${orderId} envoyée à ${email}`);
+      logger.order(`Confirmation de commande ${orderId} envoyée via SMTP à ${email}`, { orderId, email });
       return true;
     } catch (err) {
-      console.error(`❌ [EMAIL SMTP] Erreur d'envoi confirmation à ${email}:`, err.message);
+      logger.error({ category: 'ORDER', error: err.message }, `Erreur d'envoi confirmation commande à ${email}`);
     }
   }
 
@@ -196,12 +198,14 @@ async function sendOrderShippedEmail(order) {
         text: textContent,
         html: htmlContent
       });
-      console.log(`✉️ [EMAIL SMTP] Notification d'expédition ${orderId} envoyée à ${email}`);
+      logger.order(`Notification d'expédition ${orderId} envoyée via SMTP à ${email}`, { orderId, email, trackingNumber });
       return true;
     } catch (err) {
-      console.error(`❌ [EMAIL SMTP] Erreur d'envoi notification expédition à ${email}:`, err.message);
+      logger.error({ category: 'ORDER', error: err.message }, `Erreur d'envoi notification expédition à ${email}`);
     }
   }
+
+  logger.order(`Simulation e-mail d'expédition générée pour commande ${orderId}`, { orderId, email, trackingNumber });
 
   console.log(`\n=================================================================`);
   console.log(`✉️ [EMAIL AUTOMATION SERVER] NOTIFICATION EXPEDITION`);

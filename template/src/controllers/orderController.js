@@ -1,6 +1,7 @@
 const { getOrdersAsync, getOrderByOrderIdAsync, getUserOrdersAsync, updateOrderAdminAsync } = require('../data/ordersStore');
 const { sendOrderShippedEmail } = require('../services/emailService');
 const { isValidAdminToken } = require('../middleware/adminAuth');
+const logger = require('../config/logger');
 
 async function getAllOrders(req, res) {
   try {
@@ -51,7 +52,11 @@ async function updateOrder(req, res) {
 
     const updated = await updateOrderAdminAsync(orderId, { status, trackingNumber });
     if (updated) {
-      console.log(`[ADMIN PRISMA DB] Commande ${orderId} mise à jour : Statut=${status}, Suivi=${trackingNumber || 'aucun'}`);
+      logger.order(`Commande ${orderId} mise à jour : Statut=${status}, Suivi=${trackingNumber || 'aucun'}`, {
+        orderId,
+        status,
+        trackingNumber: trackingNumber || null
+      });
 
       // If status is set to shipped or tracking number is provided, automatically trigger shipping email
       if (status === 'shipped' || (trackingNumber && trackingNumber.trim().length > 0)) {
